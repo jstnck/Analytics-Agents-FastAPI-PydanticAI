@@ -139,26 +139,20 @@ graph LR
 
 ### Agent System
 
-Hierarchical multi-agent system with specialized components:
+Hierarchical multi-agent system: the orchestrator chats with the user, and coordinates data analysis and charts from the sub agents:
 
 ```mermaid
 graph TD
     A[User Query] --> B[Orchestrator Agent]
-    B --> C[SQL Agent]
-    C --> D[DuckDB Database]
-    D --> E[Query Results]
-    E --> C
-    C --> B
-    B --> F[Visualization Agent]
-    F --> G[Chart Specification]
-    G --> B
-    B --> H[Structured Response]
-    H --> A
+    B <--> C[SQL Agent]
+    B <--> D[Visualization Agent]
+    C <--> E[DuckDB]
+    B --> A
 
     style B fill:#e1f5ff
     style C fill:#fff4e1
-    style F fill:#ffe1f5
-    style D fill:#f0f0f0
+    style D fill:#ffe1f5
+    style E fill:#f0f0f0
 ```
 
 ## Testing
