@@ -149,18 +149,17 @@ graph TD
     D --> E[Query Results]
     E --> C
     C --> B
-    B --> F[Structured Response]
-    F --> A
+    B --> F[Visualization Agent]
+    F --> G[Chart Specification]
+    G --> B
+    B --> H[Structured Response]
+    H --> A
 
     style B fill:#e1f5ff
     style C fill:#fff4e1
+    style F fill:#ffe1f5
     style D fill:#f0f0f0
 ```
-
-**nginx**: Reverse proxy providing unified entry point and routing
-**Orchestrator Agent**: Routes requests based on intent and maintains conversation context
-**SQL Agent**: Generates and validates SQL queries with self-correction capabilities
-**DuckDB**: Analytics database with NBA team statistics, schedules, and ML predictions
 
 ## Testing
 
