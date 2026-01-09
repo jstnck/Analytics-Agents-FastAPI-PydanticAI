@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     orchestrator_timeout_seconds: int = 45
 
     # CORS
-    allowed_origins: list[str] = ["http://localhost:3000"]
+    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:8080"]
 
 
 settings = Settings()

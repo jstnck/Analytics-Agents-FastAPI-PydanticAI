@@ -97,6 +97,97 @@ class TestDatabaseTools:
         assert result.results == []
 
 
+@pytest.mark.asyncio
+class TestVizAgentTools:
+    """Test visualization agent tools."""
+
+    async def test_create_chart_basic(self) -> None:
+        """Test basic chart creation from viz_agent tools."""
+        from app.agents.viz_agent import create_chart, VizAgentDeps
+        from app.database.duckdb_client import DuckDBClient
+        from pydantic_ai import RunContext
+
+        db_client = DuckDBClient()
+        deps = VizAgentDeps(db_client=db_client)
+
+        # Create a mock RunContext
+        class MockCtx:
+            def __init__(self, deps):
+                self.deps = deps
+
+        ctx = MockCtx(deps)
+
+        # Sample data
+        data = [
+            {"team": "Lakers", "points": 110},
+            {"team": "Celtics", "points": 105},
+            {"team": "Warriors", "points": 115},
+        ]
+
+        result = await create_chart(
+            ctx,
+            chart_type="bar",
+            data=data,
+            x_column="team",
+            y_column="points",
+            title="Team Points"
+        )
+
+        assert result["status"] == "success"
+        assert result["chart_type"] == "bar"
+        assert result["data_points"] == 3
+        assert "chart_spec" in result
+        assert "data" in result["chart_spec"]
+        assert "layout" in result["chart_spec"]
+
+    async def test_create_multi_series_chart(self) -> None:
+        """Test multi-series chart creation."""
+        from app.agents.viz_agent import create_multi_series_chart, VizAgentDeps
+        from app.database.duckdb_client import DuckDBClient
+
+        db_client = DuckDBClient()
+        deps = VizAgentDeps(db_client=db_client)
+
+        class MockCtx:
+            def __init__(self, deps):
+                self.deps = deps
+
+        ctx = MockCtx(deps)
+
+        data = [
+            {"team": "Lakers", "points": 110, "assists": 25},
+            {"team": "Celtics", "points": 105, "assists": 22},
+        ]
+
+        result = await create_multi_series_chart(
+            ctx,
+            chart_type="bar",
+            data=data,
+            x_column="team",
+            y_columns=["points", "assists"],
+            title="Team Stats"
+        )
+
+        assert result["status"] == "success"
+        assert result["chart_type"] == "bar"
+        assert result["series_count"] == 2
+        assert len(result["chart_spec"]["data"]) == 2
+
+    async def test_viz_agent_response_structure(self) -> None:
+        """Test VizAgentResponse model structure."""
+        from app.agents.viz_agent import VizAgentResponse
+
+        response = VizAgentResponse(
+            message="Chart created",
+            chart_spec={"data": [], "layout": {}},
+            chart_type="bar"
+        )
+
+        assert response.message == "Chart created"
+        assert response.chart_type == "bar"
+        assert response.chart_spec is not None
+
+
 # Note: Integration tests for agents require API keys and will be added
 # when we test the full orchestrator -> SQL agent flow
 

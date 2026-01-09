@@ -15,9 +15,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Set build-time environment variable for API URL
-# This will be overridden by runtime env vars
-ENV NEXT_PUBLIC_API_URL=http://backend:8000/api/v1
+# Accept API URL as build argument (defaults to relative URL for nginx)
+ARG NEXT_PUBLIC_API_URL=/api/v1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 RUN npm run build
 

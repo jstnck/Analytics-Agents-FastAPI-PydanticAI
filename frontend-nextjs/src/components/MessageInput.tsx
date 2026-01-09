@@ -5,9 +5,16 @@ import { useState, KeyboardEvent } from 'react';
 interface MessageInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
+  includeChart: boolean;
+  onToggleChart: (value: boolean) => void;
 }
 
-export default function MessageInput({ onSend, disabled = false }: MessageInputProps) {
+export default function MessageInput({
+  onSend,
+  disabled = false,
+  includeChart,
+  onToggleChart,
+}: MessageInputProps) {
   const [input, setInput] = useState('');
 
   const handleSend = () => {
@@ -45,9 +52,23 @@ export default function MessageInput({ onSend, disabled = false }: MessageInputP
           {disabled ? 'Sending...' : 'Send'}
         </button>
       </div>
-      <p className="mt-2 text-xs text-gray-500">
-        Press Enter to send, Shift+Enter for new line
-      </p>
+
+      <div className="flex items-center justify-between mt-2">
+        <p className="text-xs text-gray-500">
+          Press Enter to send, Shift+Enter for new line
+        </p>
+
+        {/* Include chart checkbox */}
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
+          <input
+            type="checkbox"
+            checked={includeChart}
+            onChange={(e) => onToggleChart(e.target.checked)}
+            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+          />
+          <span className="select-none">Include chart with answer</span>
+        </label>
+      </div>
     </div>
   );
 }

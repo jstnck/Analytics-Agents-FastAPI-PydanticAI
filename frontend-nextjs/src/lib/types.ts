@@ -10,7 +10,27 @@ export interface Message {
 export interface MessageMetadata {
   sql_query?: string;
   data_summary?: Record<string, unknown>;
+  chart_spec?: ChartSpec;
+  chart_type?: string;
   [key: string]: unknown;
+}
+
+export interface ChartSpec {
+  data: Array<{
+    type: string;
+    x: unknown[];
+    y: unknown[];
+    name?: string;
+    [key: string]: unknown;
+  }>;
+  layout: {
+    title?: { text: string };
+    xaxis?: { title: string };
+    yaxis?: { title: string };
+    template?: string;
+    barmode?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface ChatRequest {

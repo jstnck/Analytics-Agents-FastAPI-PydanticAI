@@ -1,6 +1,6 @@
 # NBA Analytics Agent
 
-A production-grade AI analytics platform demonstrating multi-agent orchestration for natural language data queries. This system enables business users to interact with complex NBA datasets using conversational English, automatically translating questions into optimized SQL queries with transparent execution paths.
+A deployment-ready AI analytics platform demonstrating multi-agent orchestration for natural language data queries. This system enables business users to interact with complex NBA datasets using conversational English, automatically translating questions into optimized SQL queries with transparent execution paths.
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
@@ -16,10 +16,11 @@ This application showcases a modern approach to data analytics through a **hiera
 
 - **Multi-agent orchestration** with specialized routing and intent classification
 - **Natural language to SQL** with automatic query generation and error recovery
+- **Chart visualizations** powered by Plotly for query results
 - **Type-safe architecture** using Pydantic models throughout the stack
 - **Conversation context** maintained across multi-turn interactions
 - **Query transparency** showing generated SQL and execution metadata
-- **Containerized** with async I/O, dependency injection, with docker compose
+- **Production-ready infrastructure** with nginx reverse proxy and containerized services
 
 ## Tech Stack
 
@@ -34,12 +35,14 @@ This application showcases a modern approach to data analytics through a **hiera
 - **[Next.js 15](https://nextjs.org/)** - React framework with App Router
 - **[TypeScript](https://www.typescriptlang.org/)** - Type safety in the frontend
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first styling
+- **[Plotly.js](https://plotly.com/javascript/)** - Interactive data visualization
 - **[Axios](https://axios-http.com/)** - HTTP client for API communication
 
 ### Infrastructure
+- **nginx** - Reverse proxy for unified service routing
 - **Docker & Docker Compose** - Container orchestration
 - **pytest** - Testing framework
-- **Ruff** - Fast Python linter and formatter
+- **Ruff and Mypy** - Fast Python linter type checking
 
 
 ## Use Cases
@@ -81,12 +84,16 @@ This application showcases a modern approach to data analytics through a **hiera
 
 3. **Launch**
    ```bash
-   docker-compose up --build
+   docker compose up --build
    ```
 
 4. **Access**
-   - Frontend: [http://localhost:3000](http://localhost:3000)
-   - API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+   - Application: [http://localhost:8080](http://localhost:8080)
+   - API Docs: [http://localhost:8080/api/v1/docs](http://localhost:8080/api/v1/docs)
+
+   The application uses nginx as a reverse proxy that routes:
+   - `/api/*` requests to the FastAPI backend
+   - All other requests to the Next.js frontend
 
 ## Project Structure
 
@@ -109,10 +116,28 @@ This application showcases a modern approach to data analytics through a **hiera
 │       ├── components/     # React components
 │       └── lib/            # API client & types
 ├── data/                   # DuckDB database files
+├── nginx.conf              # Reverse proxy configuration
 └── docker-compose.yml      # Container orchestration
 ```
 
 ## Architecture
+
+### Infrastructure Layer
+
+```mermaid
+graph LR
+    A[Browser] -->|:8080| B[nginx]
+    B -->|/api/*| C[FastAPI Backend :8000]
+    B -->|/*| D[Next.js Frontend :3000]
+    C --> E[DuckDB]
+
+    style B fill:#90EE90
+    style C fill:#87CEEB
+    style D fill:#FFB6C1
+    style E fill:#f0f0f0
+```
+
+### Agent System
 
 Hierarchical multi-agent system with specialized components:
 
@@ -126,14 +151,15 @@ graph TD
     C --> B
     B --> F[Structured Response]
     F --> A
-    
+
     style B fill:#e1f5ff
     style C fill:#fff4e1
     style D fill:#f0f0f0
 ```
 
-**Orchestrator Agent**: Routes requests based on intent and maintains conversation context  
-**SQL Agent**: Generates and validates SQL queries with self-correction capabilities  
+**nginx**: Reverse proxy providing unified entry point and routing
+**Orchestrator Agent**: Routes requests based on intent and maintains conversation context
+**SQL Agent**: Generates and validates SQL queries with self-correction capabilities
 **DuckDB**: Analytics database with NBA team statistics, schedules, and ML predictions
 
 ## Testing
@@ -169,14 +195,3 @@ Contributions are welcome. Please submit pull requests with:
 - Documentation updates as needed
 
 For major changes, please open an issue first to discuss the proposed modifications.
-
-## Testing
-
-```bash
-# Run backend tests
-cd backend
-pytest
-
-# Run with coverage
-pytest --cov=app tests/
-```

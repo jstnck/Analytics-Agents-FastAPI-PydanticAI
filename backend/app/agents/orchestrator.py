@@ -1,6 +1,5 @@
 """Orchestrator agent that coordinates specialist agents."""
 
-import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,15 +7,10 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 
 from app.agents.sql_agent import run_sql_agent
+from app.agents.viz_agent import run_viz_agent
 from app.config import settings
 from app.database.duckdb_client import DuckDBClient
 from app.utils.prompts import ORCHESTRATOR_SYSTEM_PROMPT
-
-# Set API key in environment for PydanticAI to pick up
-if settings.anthropic_api_key:
-    os.environ["ANTHROPIC_API_KEY"] = settings.anthropic_api_key
-if settings.openai_api_key:
-    os.environ["OPENAI_API_KEY"] = settings.openai_api_key
 
 
 class OrchestratorResponse(BaseModel):
@@ -64,7 +58,7 @@ async def call_sql_agent(ctx: RunContext[OrchestratorDeps], question: str) -> di
         question: The data question to send to the SQL agent
 
     Returns:
-        Dictionary with message, sql_query, and optional data_summary
+        Dictionary with message, sql_query, data_summary, and results data
     """
     try:
         result = await run_sql_agent(question, ctx.deps.db_client)
@@ -73,6 +67,7 @@ async def call_sql_agent(ctx: RunContext[OrchestratorDeps], question: str) -> di
             "message": result.message,
             "sql_query": result.sql_query,
             "data_summary": result.data_summary,
+            "results": result.results,  # Include results for viz agent
         }
     except Exception as e:
         return {
@@ -80,6 +75,55 @@ async def call_sql_agent(ctx: RunContext[OrchestratorDeps], question: str) -> di
             "message": f"SQL agent error: {str(e)}",
             "sql_query": None,
             "data_summary": None,
+            "results": None,
+        }
+
+
+@orchestrator_agent.tool
+async def call_viz_agent(
+    ctx: RunContext[OrchestratorDeps],
+    user_question: str,
+    sql_query: str,
+    query_results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """
+    Call the visualization agent to create charts from data.
+
+    Use this tool when the user wants to visualize data as a chart or graph.
+    You should call the SQL agent FIRST to get data, then pass all context to this tool.
+
+    The viz agent uses three pieces of context to make smart chart decisions:
+    1. User's original question (intent: ranking, comparison, trend, etc.)
+    2. SQL query executed (data structure: columns, ORDER BY, aggregations)
+    3. Query results (data shape: row count, values)
+
+    Args:
+        user_question: The original question the user asked
+        sql_query: The SQL query that was executed by the SQL agent
+        query_results: The results returned from the SQL query
+
+    Returns:
+        Dictionary with message, chart_spec (Plotly JSON), and chart_type
+    """
+    try:
+        result = await run_viz_agent(
+            user_question=user_question,
+            sql_query=sql_query,
+            query_results=query_results,
+            db_client=ctx.deps.db_client,
+        )
+        return {
+            "status": "success",
+            "message": result.message,
+            "chart_spec": result.chart_spec,
+            "chart_type": result.chart_type,
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Visualization agent error: {str(e)}",
+            "chart_spec": None,
+            "chart_type": None,
         }
 
 
