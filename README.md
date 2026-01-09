@@ -110,39 +110,34 @@ This application showcases a modern approach to data analytics through a **hiera
 │       └── lib/            # API client & types
 ├── data/                   # DuckDB database files
 └── docker-compose.yml      # Container orchestration
-```System Architecture
-
-The application implements a **hierarchical multi-agent pattern** with clear separation of concerns:
-
 ```
-┌─────────────────────────────────────────────────────┐
-│              User Interface (Next.js)               │
-│         WebSocket/REST API Communication            │
-└────────────────────┬────────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│         FastAPI Backend (Async Runtime)             │
-│  ┌───────────────────────────────────────────────┐  │
-│  │        Orchestrator Agent (Claude)            │  │
-│  │     • Intent Classification                   │  │
-│  │     • Agent Routing                           │  │
-│  │     • Response Aggregation                    │  │
-│  └──────────────────┬────────────────────────────┘  │
-│                     │                                │
-│  ┌──────────────────▼─────────────────────────────┐ │
-│  │          SQL Agent (Claude)                    │ │
-│  │     • Schema Introspection                     │ │
-│  │     • Query Generation                         │ │
-│  │     • Error Recovery                           │ │
-│  │     • Result Formatting                        │ │
-│  └──────────────────┬─────────────────────────────┘ │
-└────────────────────┬┴─────────────────────────────┘
-                     │
-                     ▼
-┌─────────────────────────────────────────────────────┐
-│            DuckDB Analytics Database                │
-│     • Team Statistics (Per Game, Differential)      │
+
+## Architecture
+
+Hierarchical multi-agent system with specialized components:
+
+```mermaid
+graph TD
+    A[User Query] --> B[Orchestrator Agent]
+    B --> C[SQL Agent]
+    C --> D[DuckDB Database]
+    D --> E[Query Results]
+    E --> C
+    C --> B
+    B --> F[Structured Response]
+    F --> A
+    
+    style B fill:#e1f5ff
+    style C fill:#fff4e1
+    style D fill:#f0f0f0
+```
+
+**Orchestrator Agent**: Routes requests based on intent and maintains conversation context  
+**SQL Agent**: Generates and validates SQL queries with self-correction capabilities  
+**DuckDB**: Analytics database with NBA team statistics, schedules, and ML predictions
+
+## Testing
+
 The project includes comprehensive test coverage for core functionality:
 
 ```bash
