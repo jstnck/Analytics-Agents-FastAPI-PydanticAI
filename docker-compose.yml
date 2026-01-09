@@ -1,0 +1,58 @@
+# NBA Analytics Agent - Docker Compose
+#
+# Usage:
+#   1. Ensure backend/.env has ANTHROPIC_API_KEY set
+#   2. Run: docker-compose up --build
+#   3. Access frontend at http://localhost:3000
+
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: analytics-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./backend/app:/app/app  # Hot reload for development
+    env_file:
+      - ./backend/.env  # Use the same .env file as local development
+    environment:
+      # Override/add Docker-specific settings
+      - DEBUG=true
+      - DUCKDB_PATH=/app/data/analytics.duckdb
+      - ALLOWED_ORIGINS=["http://localhost:3000","http://frontend:3000"]
+    networks:
+      - analytics-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend-nextjs
+      dockerfile: Dockerfile
+    container_name: analytics-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000/api/v1
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - analytics-network
+
+networks:
+  analytics-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local

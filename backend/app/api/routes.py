@@ -1,25 +1,14 @@
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.agents.orchestrator import run_orchestrator
-from app.database.duckdb_client import DuckDBClient
+from app.database.duckdb_client import DuckDBClient, get_db_client
 from app.schemas.chat import ChatRequest, ChatResponse, ErrorResponse
 
 router = APIRouter()
-
-
-def get_db_client() -> DuckDBClient:
-    """
-    Dependency for getting a database client instance.
-
-    Following PydanticAI best practices, we inject the db_client
-    as a dependency rather than using a global singleton.
-    """
-    return DuckDBClient()
-
 
 @router.get("/health")
 async def health_check() -> dict[str, Any]:
@@ -36,7 +25,7 @@ async def health_check() -> dict[str, Any]:
     },
 )
 async def chat(
-    request: ChatRequest, db_client: DuckDBClient = Depends(get_db_client)
+    request: ChatRequest, db_client: Annotated[DuckDBClient, Depends(get_db_client)]
 ) -> ChatResponse:
     """
     Chat endpoint for agent interactions.

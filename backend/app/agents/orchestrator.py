@@ -1,5 +1,6 @@
 """Orchestrator agent that coordinates specialist agents."""
 
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -10,6 +11,12 @@ from app.agents.sql_agent import run_sql_agent
 from app.config import settings
 from app.database.duckdb_client import DuckDBClient
 from app.utils.prompts import ORCHESTRATOR_SYSTEM_PROMPT
+
+# Set API key in environment for PydanticAI to pick up
+if settings.anthropic_api_key:
+    os.environ["ANTHROPIC_API_KEY"] = settings.anthropic_api_key
+if settings.openai_api_key:
+    os.environ["OPENAI_API_KEY"] = settings.openai_api_key
 
 
 class OrchestratorResponse(BaseModel):
@@ -90,11 +97,21 @@ async def run_orchestrator(
     Args:
         user_question: The user's question
         db_client: Database client instance to pass to specialist agents
-        conversation_history: Optional conversation history (note: not yet used with message_history)
+        conversation_history: Optional conversation history for multi-turn conversations
 
     Returns:
         OrchestratorResponse with message and metadata
     """
     deps = OrchestratorDeps(db_client=db_client)
-    result = await orchestrator_agent.run(user_question, deps=deps)
-    return result.data
+
+    # Run agent with conversation history if provided
+    if conversation_history:
+        result = await orchestrator_agent.run(
+            user_question,
+            deps=deps,
+            message_history=conversation_history
+        )
+    else:
+        result = await orchestrator_agent.run(user_question, deps=deps)
+
+    return result.output

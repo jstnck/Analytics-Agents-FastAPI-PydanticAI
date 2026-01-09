@@ -1,6 +1,6 @@
 .env
 *.env
-claude.md
+!.env.example
 .claude
 *__pycache__/
 *.pyc
@@ -15,3 +15,15 @@ build/
 *.db
 *.duckdb
 *.duckdb.wal
+
+# Internal documentation and notes
+docs/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

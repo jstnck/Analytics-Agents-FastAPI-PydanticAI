@@ -1,5 +1,6 @@
 """SQL Agent for generating and executing SQL queries against NBA data."""
 
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -10,6 +11,12 @@ from app.agents.tools import QueryError, QueryResult, execute_sql_query, get_dat
 from app.config import settings
 from app.database.duckdb_client import DuckDBClient
 from app.utils.prompts import SQL_AGENT_SYSTEM_PROMPT
+
+# Set API key in environment for PydanticAI to pick up
+if settings.anthropic_api_key:
+    os.environ["ANTHROPIC_API_KEY"] = settings.anthropic_api_key
+if settings.openai_api_key:
+    os.environ["OPENAI_API_KEY"] = settings.openai_api_key
 
 
 class SQLAgentResponse(BaseModel):
@@ -105,4 +112,4 @@ async def run_sql_agent(user_question: str, db_client: DuckDBClient) -> SQLAgent
     """
     deps = SQLAgentDeps(db_client=db_client)
     result = await sql_agent.run(user_question, deps=deps)
-    return result.data
+    return result.output

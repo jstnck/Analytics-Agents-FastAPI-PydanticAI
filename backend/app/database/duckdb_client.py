@@ -71,6 +71,14 @@ class DuckDBClient:
         """
         return await asyncio.to_thread(self._get_schema_info_sync)
 
+def get_db_client() -> DuckDBClient:
+    """
+    Dependency for getting a database client instance.
+
+    Following PydanticAI best practices, we inject the db_client
+    as a dependency rather than using a global singleton.
+    """
+    return DuckDBClient()
 
 # NOTE: Global singleton removed in favor of dependency injection.
 # Create instances via FastAPI Depends() or pass explicitly to agents.

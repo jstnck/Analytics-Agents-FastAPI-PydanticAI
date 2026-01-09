@@ -1,9 +1,9 @@
 """Tests for agent tools and SQL agent."""
 
 import pytest
-from app.database.duckdb_client import DuckDBClient
 
 from app.agents.tools import QueryError, QueryResult, execute_sql_query, get_database_schema
+from app.database.duckdb_client import DuckDBClient
 
 
 @pytest.mark.asyncio
@@ -23,7 +23,7 @@ class TestDatabaseTools:
         assert any("dmt_schedule" in name for name in table_names)
 
         # Check structure of schema info
-        for table_name, columns in schema.items():
+        for _table_name, columns in schema.items():
             assert isinstance(columns, list)
             if columns:  # If table has columns
                 assert "name" in columns[0]
@@ -124,3 +124,26 @@ class TestOrchestratorStructure:
 
         assert response.message == "Simple response"
         assert response.metadata == {}
+
+    def test_orchestrator_accepts_conversation_history(self) -> None:
+        """Test that run_orchestrator accepts conversation history parameter."""
+        from app.agents.orchestrator import run_orchestrator
+        from app.database.duckdb_client import DuckDBClient
+
+        # This test verifies the function signature accepts history
+        # Full integration test would require API keys
+        db_client = DuckDBClient()
+        conversation_history = [
+            {"role": "user", "content": "What teams are in the database?"},
+            {"role": "assistant", "content": "There are 30 NBA teams in the database."},
+        ]
+
+        # Verify the function accepts the parameters (won't execute without API keys)
+        import inspect
+        sig = inspect.signature(run_orchestrator)
+        params = sig.parameters
+
+        assert "user_question" in params
+        assert "db_client" in params
+        assert "conversation_history" in params
+        assert params["conversation_history"].default is None

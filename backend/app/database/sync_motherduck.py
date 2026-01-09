@@ -68,7 +68,7 @@ def main() -> None:
     """Run sync script with environment variables."""
     motherduck_db = os.getenv("MOTHERDUCK_DB")
     motherduck_token = os.getenv("MOTHERDUCK_TOKEN")
-    local_db_path = os.getenv("DUCKDB_PATH", "../data/local_dmt.duckdb")
+    local_db_path = os.getenv("DUCKDB_PATH", "../data/analytics.duckdb")
     source_schema = os.getenv("MOTHERDUCK_SCHEMA", "dmt")
 
     if not motherduck_db or not motherduck_token:

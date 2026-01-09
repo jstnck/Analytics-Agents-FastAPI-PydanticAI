@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 # Load environment variables BEFORE any app imports
 load_dotenv()
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from app.database.duckdb_client import DuckDBClient
-from app.main import app
+from app.database.duckdb_client import DuckDBClient  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture
