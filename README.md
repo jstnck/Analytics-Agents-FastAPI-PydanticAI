@@ -60,6 +60,42 @@ This application showcases a modern approach to data analytics through a **hiera
 - "What are the ML predictions for upcoming games?"
 
 
+## Architecture
+
+### Infrastructure Layer
+
+```mermaid
+graph LR
+    A[Browser] -->|:8080| B[nginx]
+    B -->|/api/*| C[FastAPI Backend :8000]
+    B -->|/*| D[Next.js Frontend :3000]
+    C --> E[DuckDB]
+
+    style B fill:#90EE90
+    style C fill:#87CEEB
+    style D fill:#FFB6C1
+    style E fill:#f0f0f0
+```
+
+### Agent System
+
+Hierarchical multi-agent system: the orchestrator chats with the user, and coordinates data analysis and charts from the sub agents:
+
+```mermaid
+graph TD
+    A[User Chat] --> B[Orchestrator Agent]
+    B <--> C[SQL Agent]
+    B <--> D[Visualization Agent]
+    C <--> E[DuckDB]
+    D <--> E
+    B --> A
+
+    style B fill:#e1f5ff
+    style C fill:#fff4e1
+    style D fill:#ffe1f5
+    style E fill:#f0f0f0
+```
+
 ## Getting Started
 
 ### Prerequisites
@@ -118,41 +154,6 @@ This application showcases a modern approach to data analytics through a **hiera
 ├── data/                   # DuckDB database files
 ├── nginx.conf              # Reverse proxy configuration
 └── docker-compose.yml      # Container orchestration
-```
-
-## Architecture
-
-### Infrastructure Layer
-
-```mermaid
-graph LR
-    A[Browser] -->|:8080| B[nginx]
-    B -->|/api/*| C[FastAPI Backend :8000]
-    B -->|/*| D[Next.js Frontend :3000]
-    C --> E[DuckDB]
-
-    style B fill:#90EE90
-    style C fill:#87CEEB
-    style D fill:#FFB6C1
-    style E fill:#f0f0f0
-```
-
-### Agent System
-
-Hierarchical multi-agent system: the orchestrator chats with the user, and coordinates data analysis and charts from the sub agents:
-
-```mermaid
-graph TD
-    A[User Query] --> B[Orchestrator Agent]
-    B <--> C[SQL Agent]
-    B <--> D[Visualization Agent]
-    C <--> E[DuckDB]
-    B --> A
-
-    style B fill:#e1f5ff
-    style C fill:#fff4e1
-    style D fill:#ffe1f5
-    style E fill:#f0f0f0
 ```
 
 ## Testing
