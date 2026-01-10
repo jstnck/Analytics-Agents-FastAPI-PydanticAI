@@ -17,33 +17,8 @@ This application showcases a modern approach to data analytics through a **hiera
 - **Multi-agent orchestration** with specialized routing and intent classification
 - **Natural language to SQL** with automatic query generation and error recovery
 - **Chart visualizations** powered by Plotly for query results
-- **Type-safe architecture** using Pydantic models throughout the stack
-- **Conversation context** maintained across multi-turn interactions
 - **Query transparency** showing generated SQL and execution metadata
-- **Production-ready infrastructure** with nginx reverse proxy and containerized services
-
-## Tech Stack
-
-### Backend
-- **[FastAPI](https://fastapi.tiangolo.com/)** - Modern async web framework
-- **[PydanticAI](https://ai.pydantic.dev/)** - Type-safe AI agent framework (by the Pydantic team)
-- **[Claude Sonnet 4](https://www.anthropic.com/claude)** - Anthropic's latest LLM for agent intelligence
-- **[DuckDB](https://duckdb.org/)** - High-performance analytical database
-- **Python 3.11+** with async/await throughout
-
-### Frontend
-- **[Next.js 15](https://nextjs.org/)** - React framework with App Router
-- **[TypeScript](https://www.typescriptlang.org/)** - Type safety in the frontend
-- **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first styling
-- **[Plotly.js](https://plotly.com/javascript/)** - Interactive data visualization
-- **[Axios](https://axios-http.com/)** - HTTP client for API communication
-
-### Infrastructure
-- **nginx** - Reverse proxy for unified service routing
-- **Docker & Docker Compose** - Container orchestration
-- **pytest** - Testing framework
-- **Ruff and Mypy** - Fast Python linter type checking
-
+- **Agent observability** with Langfuse tracing for monitoring LLM calls
 
 ## Use Cases
 
@@ -58,6 +33,16 @@ This application showcases a modern approach to data analytics through a **hiera
 - Performance metric calculation
 - "Compare the Raptors and Celtics offensive performance"
 - "What are the ML predictions for upcoming games?"
+
+## Tech Stack
+
+- **[FastAPI](https://fastapi.tiangolo.com/)** - Modern async web framework
+- **[PydanticAI](https://ai.pydantic.dev/)** - Type-safe AI agent framework
+- **[Claude](https://www.anthropic.com/claude)** - Anthropic LLM for agent intelligence
+- **[DuckDB](https://duckdb.org/)** - High-performance analytical database
+- **[Plotly](https://plotly.com/javascript/)** - Interactive data visualization
+- **[Langfuse](https://langfuse.com/)** - LLM observability and tracing
+- **[nginx](https://nginx.org/)** - Reverse proxy for unified service routing
 
 
 ## Architecture
@@ -112,10 +97,15 @@ graph TD
    ```
 
 2. **Configure environment**
-   
+
    Create `backend/.env`:
    ```bash
    ANTHROPIC_API_KEY=your_api_key_here
+
+   # Optional: Enable Langfuse observability
+   LANGFUSE_PUBLIC_KEY=your_public_key
+   LANGFUSE_SECRET_KEY=your_secret_key
+   LANGFUSE_HOST=http://localhost:8081
    ```
 
 3. **Launch**
@@ -126,6 +116,7 @@ graph TD
 4. **Access**
    - Application: [http://localhost:8080](http://localhost:8080)
    - API Docs: [http://localhost:8080/api/v1/docs](http://localhost:8080/api/v1/docs)
+   - Langfuse Dashboard: [http://localhost:8081](http://localhost:8081) (if configured)
 
    The application uses nginx as a reverse proxy that routes:
    - `/api/*` requests to the FastAPI backend
@@ -172,14 +163,6 @@ pytest --cov=app --cov-report=html tests/
 pytest tests/test_agents.py -v      # Agent functionality
 pytest tests/test_api.py -v         # API endpoints
 ```
-
-### Test Coverage
-
-- Database query execution and validation
-- SQL injection prevention mechanisms
-- Agent tool integration
-- Error handling and recovery paths
-- API endpoint responses and status codes
 
 ## Contributing
 
