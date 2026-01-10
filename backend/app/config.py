@@ -17,11 +17,14 @@ class Settings(BaseSettings):
     # LLM settings
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
-    default_llm_model: str = "anthropic:claude-sonnet-4-5-20250929"
+    default_llm_model: str = "anthropic:claude-3-5-haiku-20241022"
 
     # Agent timeouts (seconds)
     sql_agent_timeout_seconds: int = 30
     orchestrator_timeout_seconds: int = 45
+
+    # Auth
+    admin_api_key: str
 
     # CORS
     allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:8080"]

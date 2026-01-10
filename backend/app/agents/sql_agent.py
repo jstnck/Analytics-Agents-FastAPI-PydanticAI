@@ -1,15 +1,20 @@
 """SQL Agent for generating and executing SQL queries against NBA data."""
 
+import logging
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 
+from app.agents.rate_limits import SQL_AGENT_LIMITS
 from app.agents.tools import QueryError, QueryResult, execute_sql_query, get_database_schema
 from app.config import settings
 from app.database.duckdb_client import DuckDBClient
 from app.utils.prompts import SQL_AGENT_SYSTEM_PROMPT
+
+logger = logging.getLogger(__name__)
 
 
 class SQLAgentResponse(BaseModel):
@@ -50,6 +55,28 @@ sql_agent = Agent(
 
 
 @sql_agent.tool
+async def get_current_datetime(ctx: RunContext[SQLAgentDeps]) -> dict[str, str]:
+    """
+    Get the current date and time.
+
+    Use this tool when you need to calculate relative dates like "today", "yesterday",
+    "this week", "last 3 hours", etc. for temporal queries.
+
+    Returns:
+        Dictionary with current date, time, and timestamp information
+    """
+    now = datetime.now()
+    logger.debug(f"SQL agent requested current datetime: {now.isoformat()}")
+    return {
+        "current_date": now.strftime('%Y-%m-%d'),
+        "current_time": now.strftime('%H:%M:%S'),
+        "current_datetime": now.strftime('%Y-%m-%d %H:%M:%S'),
+        "current_timestamp": now.isoformat(),
+        "day_of_week": now.strftime('%A'),
+    }
+
+
+@sql_agent.tool
 async def get_schema(ctx: RunContext[SQLAgentDeps]) -> dict[str, list[dict[str, str]]]:
     """
     Get the complete database schema.
@@ -57,7 +84,10 @@ async def get_schema(ctx: RunContext[SQLAgentDeps]) -> dict[str, list[dict[str, 
     Returns table and column information for all available tables.
     Use this when you need to understand table structure.
     """
-    return await get_database_schema(ctx.deps.db_client)
+    logger.debug("SQL agent fetching database schema")
+    schema = await get_database_schema(ctx.deps.db_client)
+    logger.debug(f"Schema retrieved: {list(schema.keys())} tables")
+    return schema
 
 
 @sql_agent.tool
@@ -74,9 +104,11 @@ async def execute_query(ctx: RunContext[SQLAgentDeps], sql: str) -> dict[str, An
     Returns:
         Dictionary with query results or error information
     """
+    logger.info(f"SQL agent executing query: {sql[:200]}...")
     result = await execute_sql_query(sql, ctx.deps.db_client)
 
     if isinstance(result, QueryResult):
+        logger.info(f"Query succeeded. Rows returned: {result.rows_returned}")
         return {
             "status": "success",
             "sql_query": result.sql_query,
@@ -85,6 +117,7 @@ async def execute_query(ctx: RunContext[SQLAgentDeps], sql: str) -> dict[str, An
             "columns": result.columns,
         }
     elif isinstance(result, QueryError):
+        logger.warning(f"Query failed: {result.error_type} - {result.error_message}")
         return {
             "status": "error",
             "sql_query": result.sql_query,
@@ -92,6 +125,7 @@ async def execute_query(ctx: RunContext[SQLAgentDeps], sql: str) -> dict[str, An
             "error_type": result.error_type,
         }
     else:
+        logger.error("Unknown error occurred during query execution")
         return {"status": "error", "error_message": "Unknown error occurred"}
 
 
@@ -106,6 +140,21 @@ async def run_sql_agent(user_question: str, db_client: DuckDBClient) -> SQLAgent
     Returns:
         SQLAgentResponse with message, sql_query, and optional data_summary
     """
+    logger.info(f"SQL agent starting for question: {user_question[:100]}...")
     deps = SQLAgentDeps(db_client=db_client)
-    result = await sql_agent.run(user_question, deps=deps)
-    return result.output
+
+    try:
+        result = await sql_agent.run(user_question, deps=deps, usage_limits=SQL_AGENT_LIMITS)
+
+        if result.usage():
+            usage = result.usage()
+            logger.info(
+                f"SQL agent completed - Requests: {usage.requests}, "
+                f"Tokens: {usage.total_tokens}"
+            )
+
+        return result.output
+
+    except Exception as e:
+        logger.exception(f"SQL agent failed for question: {user_question}")
+        raise

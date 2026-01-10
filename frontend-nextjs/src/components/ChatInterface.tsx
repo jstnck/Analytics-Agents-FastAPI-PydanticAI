@@ -1,13 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Message, ChartSpec } from '@/lib/types';
-import { sendMessage } from '@/lib/api';
+import { sendMessage, getUsage } from '@/lib/api';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
 import ChartRenderer from './ChartRenderer';
 
-export default function ChatInterface() {
+interface ChatInterfaceProps {
+  mode: 'demo' | 'admin';
+  apiKey: string | null;
+}
+
+export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | undefined>();
@@ -18,6 +23,29 @@ export default function ChatInterface() {
     type?: string;
     timestamp?: string;
   } | null>(null);
+  const [usageInfo, setUsageInfo] = useState<{
+    queries_remaining?: number;
+    queries_limit?: number;
+  } | null>(null);
+
+  // Fetch usage info for demo users
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (mode === 'demo') {
+        try {
+          const usage = await getUsage(apiKey);
+          setUsageInfo({
+            queries_remaining: usage.queries_remaining,
+            queries_limit: usage.queries_limit,
+          });
+        } catch (err) {
+          console.error('Failed to fetch usage info:', err);
+        }
+      }
+    };
+
+    fetchUsage();
+  }, [mode, apiKey]);
 
   const handleSendMessage = async (content: string) => {
     // Add user message to the chat
@@ -43,12 +71,25 @@ export default function ChatInterface() {
         ? `${content} (Please include a chart visualization if appropriate)`
         : content;
 
-      // Call the backend API with conversation history
-      const response = await sendMessage(messageToSend, conversationId, history);
+      // Call the backend API with conversation history and auth
+      const response = await sendMessage(messageToSend, conversationId, history, apiKey);
 
       // Update conversation ID if this is the first message
       if (!conversationId) {
         setConversationId(response.conversation_id);
+      }
+
+      // Refresh usage info for demo users after successful query
+      if (mode === 'demo') {
+        try {
+          const usage = await getUsage(apiKey);
+          setUsageInfo({
+            queries_remaining: usage.queries_remaining,
+            queries_limit: usage.queries_limit,
+          });
+        } catch (err) {
+          console.error('Failed to refresh usage info:', err);
+        }
       }
 
       // Add assistant response to the chat
@@ -69,16 +110,42 @@ export default function ChatInterface() {
           timestamp: response.timestamp,
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error sending message:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to send message. Please try again.'
-      );
+
+      let errorMsg = 'Failed to send message. Please try again.';
+      let chatErrorMsg = '❌ Sorry, I encountered an error. Please make sure the backend is running and try again.';
+
+      // Handle rate limit errors
+      if (err.response?.status === 429) {
+        errorMsg = err.response.data?.detail || 'Rate limit exceeded. Please wait before trying again.';
+        chatErrorMsg = `❌ ${errorMsg}`;
+
+        // Refresh usage info for demo users
+        if (mode === 'demo') {
+          try {
+            const usage = await getUsage(apiKey);
+            setUsageInfo({
+              queries_remaining: usage.queries_remaining,
+              queries_limit: usage.queries_limit,
+            });
+          } catch (usageErr) {
+            console.error('Failed to refresh usage info:', usageErr);
+          }
+        }
+      } else if (err.response?.status === 401) {
+        errorMsg = 'Invalid API key. Please check your credentials.';
+        chatErrorMsg = `❌ ${errorMsg}`;
+      } else if (err instanceof Error) {
+        errorMsg = err.message;
+      }
+
+      setError(errorMsg);
 
       // Add error message to chat
       const errorMessage: Message = {
         role: 'assistant',
-        content: '❌ Sorry, I encountered an error. Please make sure the backend is running and try again.',
+        content: chatErrorMsg,
         timestamp: new Date().toISOString(),
       };
 
@@ -92,6 +159,20 @@ export default function ChatInterface() {
     <div className="flex h-full bg-gray-50">
       {/* Left side: Chat interface */}
       <div className="flex flex-col w-full lg:w-2/5 border-r border-gray-200">
+        {/* Usage info banner for demo users */}
+        {mode === 'demo' && usageInfo && (
+          <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-blue-700">
+                Demo Mode: {usageInfo.queries_remaining || 0} / {usageInfo.queries_limit || 3} queries remaining
+              </span>
+              {usageInfo.queries_remaining === 0 && (
+                <span className="text-xs text-red-600 font-semibold">Limit reached</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Error banner */}
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 text-sm">

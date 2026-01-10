@@ -1,16 +1,20 @@
 """Orchestrator agent that coordinates specialist agents."""
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 
+from app.agents.rate_limits import ORCHESTRATOR_LIMITS, ConversationTracker, RateLimitError
 from app.agents.sql_agent import run_sql_agent
 from app.agents.viz_agent import run_viz_agent
 from app.config import settings
 from app.database.duckdb_client import DuckDBClient
 from app.utils.prompts import ORCHESTRATOR_SYSTEM_PROMPT
+
+logger = logging.getLogger(__name__)
 
 
 class OrchestratorResponse(BaseModel):
@@ -60,8 +64,10 @@ async def call_sql_agent(ctx: RunContext[OrchestratorDeps], question: str) -> di
     Returns:
         Dictionary with message, sql_query, data_summary, and results data
     """
+    logger.info(f"Orchestrator calling SQL agent with question: {question[:100]}...")
     try:
         result = await run_sql_agent(question, ctx.deps.db_client)
+        logger.info(f"SQL agent succeeded. Query: {result.sql_query}")
         return {
             "status": "success",
             "message": result.message,
@@ -70,6 +76,7 @@ async def call_sql_agent(ctx: RunContext[OrchestratorDeps], question: str) -> di
             "results": result.results,  # Include results for viz agent
         }
     except Exception as e:
+        logger.exception(f"SQL agent failed for question: {question}")
         return {
             "status": "error",
             "message": f"SQL agent error: {str(e)}",
@@ -105,6 +112,7 @@ async def call_viz_agent(
     Returns:
         Dictionary with message, chart_spec (Plotly JSON), and chart_type
     """
+    logger.info(f"Orchestrator calling viz agent. Results count: {len(query_results)}")
     try:
         result = await run_viz_agent(
             user_question=user_question,
@@ -112,6 +120,7 @@ async def call_viz_agent(
             query_results=query_results,
             db_client=ctx.deps.db_client,
         )
+        logger.info(f"Viz agent succeeded. Chart type: {result.chart_type}")
         return {
             "status": "success",
             "message": result.message,
@@ -119,6 +128,7 @@ async def call_viz_agent(
             "chart_type": result.chart_type,
         }
     except Exception as e:
+        logger.exception(f"Viz agent failed for question: {user_question}")
         return {
             "status": "error",
             "message": f"Visualization agent error: {str(e)}",
@@ -131,6 +141,7 @@ async def run_orchestrator(
     user_question: str,
     db_client: DuckDBClient,
     conversation_history: list[dict[str, str]] | None = None,
+    conversation_tracker: ConversationTracker | None = None,
 ) -> OrchestratorResponse:
     """
     Run the orchestrator agent to handle a user question.
@@ -142,20 +153,59 @@ async def run_orchestrator(
         user_question: The user's question
         db_client: Database client instance to pass to specialist agents
         conversation_history: Optional conversation history for multi-turn conversations
+        conversation_tracker: Optional tracker for enforcing per-conversation limits
 
     Returns:
         OrchestratorResponse with message and metadata
+
+    Raises:
+        RateLimitError: If conversation limits are exceeded
     """
+    logger.info(f"Orchestrator received question: {user_question[:100]}...")
     deps = OrchestratorDeps(db_client=db_client)
 
-    # Run agent with conversation history if provided
-    if conversation_history:
-        result = await orchestrator_agent.run(
-            user_question,
-            deps=deps,
-            message_history=conversation_history
-        )
-    else:
-        result = await orchestrator_agent.run(user_question, deps=deps)
+    # Check conversation limits before running
+    if conversation_tracker:
+        logger.debug(f"Checking conversation limits: {conversation_tracker.get_usage_summary()}")
+        conversation_tracker.check_limits()
 
-    return result.output
+    # Run agent with conversation history if provided
+    try:
+        if conversation_history:
+            logger.debug(f"Running with conversation history ({len(conversation_history)} messages)")
+            result = await orchestrator_agent.run(
+                user_question,
+                deps=deps,
+                message_history=conversation_history,
+                usage_limits=ORCHESTRATOR_LIMITS,
+            )
+        else:
+            logger.debug("Running without conversation history")
+            result = await orchestrator_agent.run(
+                user_question, deps=deps, usage_limits=ORCHESTRATOR_LIMITS
+            )
+
+        # Track usage if tracker provided
+        if conversation_tracker and result.usage():
+            usage = result.usage()
+            conversation_tracker.add_usage(
+                {
+                    "requests": usage.requests,
+                    "tokens": usage.total_tokens,
+                    "tool_calls": len(result.all_messages()),  # Count tool calls from messages
+                }
+            )
+            logger.info(
+                f"Orchestrator usage - Requests: {usage.requests}, "
+                f"Tokens: {usage.total_tokens}, Tool calls: {len(result.all_messages())}"
+            )
+
+        logger.info("Orchestrator completed successfully")
+        return result.output
+
+    except RateLimitError as e:
+        logger.warning(f"Rate limit exceeded: {str(e)}")
+        raise
+    except Exception as e:
+        logger.exception(f"Orchestrator failed for question: {user_question}")
+        raise

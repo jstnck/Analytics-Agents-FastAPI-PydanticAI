@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
 
+from app.agents.rate_limits import VIZ_AGENT_LIMITS
 from app.config import settings
 from app.database.duckdb_client import DuckDBClient
 from app.utils.prompts import VIZ_AGENT_SYSTEM_PROMPT
@@ -205,5 +206,5 @@ Query Results ({len(query_results)} rows):
 
 Based on the user's question, the SQL query structure, and the result data, create an appropriate visualization."""
 
-    result = await viz_agent.run(prompt, deps=deps)
+    result = await viz_agent.run(prompt, deps=deps, usage_limits=VIZ_AGENT_LIMITS)
     return result.output
