@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
     default_llm_model: str = "anthropic:claude-3-5-haiku-20241022"
+    
+    # Langfuse Settings
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str = "http://langfuse-web:3000"
 
     # Agent timeouts (seconds)
     sql_agent_timeout_seconds: int = 30

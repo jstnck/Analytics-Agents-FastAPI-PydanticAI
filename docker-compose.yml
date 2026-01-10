@@ -13,12 +13,15 @@ services:
     container_name: analytics-nginx
     ports:
       - "8080:80"
+      - "8081:81"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       backend:
         condition: service_healthy
       frontend:
+        condition: service_started
+      langfuse-web:
         condition: service_started
     networks:
       - analytics-network
@@ -62,6 +65,185 @@ services:
         condition: service_healthy
     networks:
       - analytics-network
+
+  # Langfuse Observability Stack
+  postgres:
+    image: postgres:17
+    container_name: analytics-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=langfuse
+      - TZ=UTC
+      - PGTZ=UTC
+    expose:
+      - "5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      - analytics-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: analytics-clickhouse
+    restart: unless-stopped
+    environment:
+      - CLICKHOUSE_DB=default
+      - CLICKHOUSE_USER=clickhouse
+      - CLICKHOUSE_PASSWORD=clickhouse
+    expose:
+      - "8123"
+      - "9000"
+    volumes:
+      - ./data/clickhouse:/var/lib/clickhouse
+      - ./data/clickhouse-logs:/var/log/clickhouse-server
+    networks:
+      - analytics-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7
+    container_name: analytics-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass redissecret
+      --maxmemory-policy noeviction
+    expose:
+      - "6379"
+    networks:
+      - analytics-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "redissecret", "ping"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: analytics-minio
+    restart: unless-stopped
+    entrypoint: sh
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      - MINIO_ROOT_USER=minio
+      - MINIO_ROOT_PASSWORD=miniosecret
+    expose:
+      - "9000"
+      - "9001"
+    volumes:
+      - ./data/minio:/data
+    networks:
+      - analytics-network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    container_name: analytics-langfuse-worker
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment: &langfuse-worker-env
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/langfuse
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: redissecret
+      SALT: A7OS6rgiOzmPgOWdz/d7uRpZf/cbNC4WCxx82p1bw/4=
+      ENCRYPTION_KEY: "7019c350d88cd7b1a584cddd2da8213f7b433e4b53c041eca9934165d1865e6e"
+      TELEMETRY_ENABLED: "true"
+      LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "false"
+      
+      # Object Storage (MinIO)
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: us-east-1
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+
+      # Media Uploads (New in v3)
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: us-east-1
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+
+      # Batch Exports (New in v3)
+      LANGFUSE_S3_BATCH_EXPORT_ENABLED: "true"
+      LANGFUSE_S3_BATCH_EXPORT_BUCKET: langfuse
+      LANGFUSE_S3_BATCH_EXPORT_REGION: us-east-1
+      LANGFUSE_S3_BATCH_EXPORT_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_BATCH_EXPORT_SECRET_ACCESS_KEY: miniosecret
+      LANGFUSE_S3_BATCH_EXPORT_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_BATCH_EXPORT_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_BATCH_EXPORT_PREFIX: exports/
+    networks:
+      - analytics-network
+
+  langfuse-web:
+    image: langfuse/langfuse:3
+    container_name: analytics-langfuse
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      langfuse-worker:
+        condition: service_started
+    expose:
+      - "3000"
+    networks:
+      - analytics-network
+    environment:
+      <<: *langfuse-worker-env
+      HOSTNAME: 0.0.0.0
+      NEXTAUTH_URL: http://localhost:8081
+      NEXTAUTH_SECRET: xviDYixngMHmIhSAKEeuKL86HWWul2T2PuTtfYiX/nU=
+      LANGFUSE_INIT_ORG_ID: analytics-agent
+      LANGFUSE_INIT_ORG_NAME: Analytics Agent
+      LANGFUSE_INIT_PROJECT_ID: analytics-project
+      LANGFUSE_INIT_PROJECT_NAME: Analytics Project
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: lf-public-key
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: lf-secret-key
+      LANGFUSE_INIT_USER_EMAIL: admin@example.com
+      LANGFUSE_INIT_USER_NAME: Admin
+      LANGFUSE_INIT_USER_PASSWORD: admin123
 
 networks:
   analytics-network:

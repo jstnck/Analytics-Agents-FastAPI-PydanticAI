@@ -20,21 +20,29 @@ def sync_from_motherduck(
     """
     Sync tables from MotherDuck to local DuckDB.
 
+    Connects to MotherDuck, attaches local DB with a session-specific alias,
+    copies tables, then detaches cleanly to avoid conflicts.
+
     Args:
         motherduck_db: Name of the MotherDuck database
         motherduck_token: MotherDuck authentication token
         local_db_path: Path to local DuckDB file
         source_schema: Schema to copy from MotherDuck (default: dmt)
     """
+    import uuid
+
     # Ensure local database directory exists
     Path(local_db_path).parent.mkdir(parents=True, exist_ok=True)
 
-    print(f"Connecting to MotherDuck database: {motherduck_db}")
+    print(f"Syncing from MotherDuck database: {motherduck_db}")
 
-    with duckdb.connect(f"md:{motherduck_db}?motherduck_token={motherduck_token}") as conn:
-        # List tables from MotherDuck BEFORE attaching local database
+    # Use a unique alias to avoid conflicts
+    local_alias = f"local_{uuid.uuid4().hex[:8]}"
+
+    md_connection_string = f"md:{motherduck_db}?motherduck_token={motherduck_token}"
+    with duckdb.connect(md_connection_string) as md_conn:
         print(f"Checking for tables in {motherduck_db}.{source_schema}...")
-        tables = conn.execute(f"SHOW TABLES FROM {source_schema}").fetchall()
+        tables = md_conn.execute(f"SHOW TABLES FROM {source_schema}").fetchall()
 
         if not tables:
             print(f"No tables found in schema '{source_schema}'")
@@ -44,22 +52,25 @@ def sync_from_motherduck(
         for (table_name,) in tables:
             print(f"  - {table_name}")
 
-        # Now attach local database
-        conn.execute(f"ATTACH '{local_db_path}' AS local_db")
+        # Attach local database with unique alias
+        print(f"Attaching local database as '{local_alias}'...")
+        md_conn.execute(f"ATTACH '{local_db_path}' AS {local_alias}")
 
-        # Create schema in local database if needed
-        conn.execute(f"CREATE SCHEMA IF NOT EXISTS local_db.{source_schema}")
+        # Create schema in local database
+        md_conn.execute(f"CREATE SCHEMA IF NOT EXISTS {local_alias}.{source_schema}")
 
         # Copy each table
         for (table_name,) in tables:
             print(f"Copying {table_name}...")
-            conn.execute(f"""
-                CREATE OR REPLACE TABLE local_db.{source_schema}.{table_name} AS
+            md_conn.execute(f"DROP TABLE IF EXISTS {local_alias}.{source_schema}.{table_name}")
+            md_conn.execute(f"""
+                CREATE TABLE {local_alias}.{source_schema}.{table_name} AS
                 SELECT * FROM {source_schema}.{table_name}
             """)
 
-        # Force checkpoint to persist data
-        conn.execute("FORCE CHECKPOINT")
+        # Detach local database
+        print(f"Detaching local database...")
+        md_conn.execute(f"DETACH {local_alias}")
 
     print("Sync complete!")
 

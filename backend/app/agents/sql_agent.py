@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, ModelSettings, RunContext
 
 from app.agents.rate_limits import SQL_AGENT_LIMITS
 from app.agents.tools import QueryError, QueryResult, execute_sql_query, get_database_schema
@@ -50,7 +50,9 @@ sql_agent = Agent(
     output_type=SQLAgentResponse,
     deps_type=SQLAgentDeps,
     system_prompt=SQL_AGENT_SYSTEM_PROMPT,
-    retries=2,  # Allow retries for self-correction
+    retries=2,
+    instrument=True,
+    model_settings=ModelSettings(temperature=0),
 )
 
 

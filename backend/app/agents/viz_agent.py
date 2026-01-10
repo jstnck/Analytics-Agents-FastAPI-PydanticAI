@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, ModelSettings, RunContext
 
 from app.agents.rate_limits import VIZ_AGENT_LIMITS
 from app.config import settings
@@ -41,6 +41,8 @@ viz_agent = Agent(
     deps_type=VizAgentDeps,
     system_prompt=VIZ_AGENT_SYSTEM_PROMPT,
     retries=1,
+    instrument=True,
+    model_settings=ModelSettings(temperature=0),
 )
 
 

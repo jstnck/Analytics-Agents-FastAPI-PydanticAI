@@ -1,0 +1,5 @@
+# Data Directory
+
+This directory is used for storing local DuckDB databases and other data files.
+
+The directory structure is tracked in git, but the data files themselves are ignored.

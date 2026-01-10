@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
+from pydantic_ai import Agent, ModelSettings, RunContext
 
 from app.agents.rate_limits import ORCHESTRATOR_LIMITS, ConversationTracker, RateLimitError
 from app.agents.sql_agent import run_sql_agent
@@ -47,6 +47,8 @@ orchestrator_agent = Agent(
     deps_type=OrchestratorDeps,
     system_prompt=ORCHESTRATOR_SYSTEM_PROMPT,
     retries=1,
+    instrument=True,
+    model_settings=ModelSettings(temperature=0),
 )
 
 

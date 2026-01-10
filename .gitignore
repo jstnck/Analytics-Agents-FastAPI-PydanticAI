@@ -16,6 +16,10 @@ build/
 *.duckdb
 *.duckdb.wal
 
+# Data directory - ignore contents but keep the directory
+data/*
+!data/.gitkeep
+
 # Internal documentation and notes
 docs/
 

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 from collections.abc import AsyncGenerator
@@ -20,6 +21,34 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def sync_motherduck_background() -> None:
+    """Run MotherDuck sync in the background."""
+    try:
+        from app.database.sync_motherduck import sync_from_motherduck
+
+        motherduck_db = os.getenv("MOTHERDUCK_DB")
+        motherduck_token = os.getenv("MOTHERDUCK_TOKEN")
+
+        if not motherduck_db or not motherduck_token:
+            logger.info("MotherDuck credentials not configured, skipping sync")
+            return
+
+        local_db_path = settings.duckdb_path
+        source_schema = os.getenv("MOTHERDUCK_SCHEMA", "dmt")
+
+        logger.info("Starting MotherDuck sync in background...")
+        await asyncio.to_thread(
+            sync_from_motherduck,
+            motherduck_db=motherduck_db,
+            motherduck_token=motherduck_token,
+            local_db_path=local_db_path,
+            source_schema=source_schema,
+        )
+        logger.info("MotherDuck sync completed successfully")
+    except Exception as e:
+        logger.error(f"MotherDuck sync failed: {e}", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for startup and shutdown events."""
@@ -39,7 +68,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         os.environ["OPENAI_API_KEY"] = settings.openai_api_key
         logger.info("OpenAI API key configured")
 
+    # Configure Langfuse
+    if settings.langfuse_public_key and settings.langfuse_secret_key:
+        os.environ["LANGFUSE_PUBLIC_KEY"] = settings.langfuse_public_key
+        os.environ["LANGFUSE_SECRET_KEY"] = settings.langfuse_secret_key
+        os.environ["LANGFUSE_HOST"] = settings.langfuse_host
+
+        # Enable PydanticAI instrumentation
+        try:
+            from pydantic_ai import Agent
+            Agent.instrument_all()
+            logger.info(f"Langfuse instrumentation enabled at {settings.langfuse_host}")
+        except ImportError:
+            logger.warning("Could not import PydanticAI for instrumentation")
+    else:
+        logger.warning("Langfuse credentials not found - observability disabled")
+
+    # Run MotherDuck sync during startup (blocking to prevent connection conflicts)
+    await sync_motherduck_background()
+
     yield
+
     # Shutdown
     logger.info("Shutting down")
 
