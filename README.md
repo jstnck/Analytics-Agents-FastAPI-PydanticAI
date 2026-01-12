@@ -137,7 +137,7 @@ graph TD
 │   │   ├── schemas/        # Pydantic models
 │   │   └── utils/          # Prompts and helpers
 │   └── tests/              # Pytest test suite
-├── frontend-nextjs/        # Next.js frontend
+├── frontend/               # Next.js frontend
 │   └── src/
 │       ├── app/            # App router pages
 │       ├── components/     # React components

@@ -145,6 +145,7 @@ source = { editable = "." }
 dependencies = [
     { name = "duckdb" },
     { name = "fastapi" },
+    { name = "fastapi-ai-sdk" },
     { name = "langfuse" },
     { name = "plotly" },
     { name = "polars" },
@@ -175,6 +176,7 @@ dev = [
 requires-dist = [
     { name = "duckdb", specifier = ">=1.1.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "fastapi-ai-sdk", specifier = ">=0.1.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
     { name = "langfuse", specifier = ">=2.0.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13.0" },
@@ -784,6 +786,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/52/08/8c8508db6c7b9aae8f7175046af41baad690771c9bcde676419965e338c7/fastapi-0.128.0.tar.gz", hash = "sha256:1cc179e1cef10a6be60ffe429f79b829dce99d8de32d7acb7e6c8dfdf7f2645a", size = 365682, upload-time = "2025-12-27T15:21:13.714Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/05/5cbb59154b093548acd0f4c7c474a118eda06da25aa75c616b72d8fcd92a/fastapi-0.128.0-py3-none-any.whl", hash = "sha256:aebd93f9716ee3b4f4fcfe13ffb7cf308d99c9f3ab5622d8877441072561582d", size = 103094, upload-time = "2025-12-27T15:21:12.154Z" },
+]
+
+[[package]]
+name = "fastapi-ai-sdk"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/36/00ca91a31ec24f9b7dfedec10c7c88cc347b10900339f70f47ce5bc5c585/fastapi_ai_sdk-0.1.0.tar.gz", hash = "sha256:19353d99c8f86a3ae27cbf8855017a169c31fd906c71c155ba005d9f1e892370", size = 31192, upload-time = "2025-09-25T21:42:38.762Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c7/1b/cd8987b569d8503065652c9d381891bdec8b049174f6939b8c0461a21954/fastapi_ai_sdk-0.1.0-py3-none-any.whl", hash = "sha256:a8b399c71ae89b527f305ac00cec5840e50dad7e36765070e7b099e7dbba99a0", size = 14844, upload-time = "2025-09-25T21:42:37.117Z" },
 ]
 
 [[package]]

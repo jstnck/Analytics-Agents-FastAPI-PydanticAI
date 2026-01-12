@@ -89,3 +89,25 @@ class ErrorResponse(BaseModel):
             }
         }
     )
+
+
+class VercelMessagePart(BaseModel):
+    """Part of a Vercel AI SDK V6 message."""
+    type: str
+    text: str | None = None
+
+
+class VercelMessage(BaseModel):
+    """Message format sent by Vercel AI SDK."""
+    id: str | None = None
+    role: str
+    content: str | None = None
+    parts: list[VercelMessagePart] | None = None
+
+
+class VercelChatRequest(BaseModel):
+    """Request model for Vercel AI SDK streaming endpoint."""
+    messages: list[VercelMessage]
+    id: str | None = None
+    data: Any | None = None
+    trigger: str | None = None
