@@ -27,35 +27,32 @@ async def stream_orchestrator_response(
     try:
         builder.start()
 
+        # Debug: Log what metadata we have
+        logger.info(f"Orchestrator metadata keys: {list(orchestrator_result.metadata.keys()) if orchestrator_result.metadata else 'None'}")
+
         # Stream main text response in chunks
         builder.text(orchestrator_result.message, chunk_size=50)
 
         # Stream metadata as data parts
+        # Each data part becomes a field in the merged metadata object on the frontend
         if orchestrator_result.metadata:
-            # SQL query
+            # SQL query - send with correct field name
             if sql_query := orchestrator_result.metadata.get("sql_query"):
-                # Wrap scalar values in dict to satisfy Pydantic validation
-                builder.data("sql_query", {"query": sql_query})
+                builder.data("sql_query_data", {"sql_query": sql_query})
                 logger.debug(f"Streamed SQL query: {sql_query[:100]}...")
 
-            # Chart spec (usually already a dict)
+            # Chart spec - send with correct field name
             if chart_spec := orchestrator_result.metadata.get("chart_spec"):
-                if isinstance(chart_spec, dict):
-                    builder.data("chart_spec", chart_spec)
-                else:
-                    builder.data("chart_spec", {"spec": chart_spec})
+                builder.data("chart_spec_data", {"chart_spec": chart_spec})
                 logger.debug("Streamed chart spec")
 
-            # Chart type
+            # Chart type - send with correct field name
             if chart_type := orchestrator_result.metadata.get("chart_type"):
-                builder.data("chart_type", {"type": chart_type})
+                builder.data("chart_type_data", {"chart_type": chart_type})
 
-            # Data summary
+            # Data summary - send with correct field name
             if data_summary := orchestrator_result.metadata.get("data_summary"):
-                if isinstance(data_summary, dict):
-                    builder.data("data_summary", data_summary)
-                else:
-                    builder.data("data_summary", {"summary": data_summary})
+                builder.data("data_summary_data", {"data_summary": data_summary})
 
         builder.finish()
 

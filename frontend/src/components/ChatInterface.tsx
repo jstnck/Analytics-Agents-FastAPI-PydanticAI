@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport } from 'ai';
+import { useState, useEffect, useRef } from 'react';
 import type { Message, ChartSpec } from '@/lib/types';
 import { getUsage } from '@/lib/api';
 import MessageList from './MessageList';
@@ -15,7 +13,9 @@ interface ChatInterfaceProps {
 }
 
 export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [includeChart, setIncludeChart] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [currentChart, setCurrentChart] = useState<{
     spec: ChartSpec;
     type?: string;
@@ -24,30 +24,6 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
     queries_remaining?: number;
     queries_limit?: number;
   } | null>(null);
-
-  // Vercel AI SDK useChat hook
-  const {
-    messages,
-    sendMessage,
-    status,
-    error,
-  } = useChat({
-    transport: new DefaultChatTransport({
-      api: '/api/v1/chat/stream',
-      headers: apiKey ? { 'X-API-Key': apiKey } : {},
-    }),
-    onFinish: () => {
-      // Refresh usage info after streaming completes
-      if (mode === 'demo') {
-        fetchUsage();
-      }
-    },
-    onError: (error) => {
-      console.error('Stream error:', error);
-    },
-  });
-
-  const isLoading = status === 'streaming' || status === 'submitted';
 
   // Fetch usage info helper
   const fetchUsage = async () => {
@@ -69,73 +45,89 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
     fetchUsage();
   }, [mode, apiKey]);
 
+  // Update current chart when messages change
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const lastMsg = messages[messages.length - 1];
+
+    if (lastMsg.role === 'assistant' && lastMsg.metadata) {
+      if (lastMsg.metadata.chart_spec && lastMsg.metadata.chart_type) {
+        setCurrentChart({
+          spec: lastMsg.metadata.chart_spec,
+          type: lastMsg.metadata.chart_type,
+        });
+      }
+    }
+  }, [messages]);
+
   const handleSendMessage = async (content: string) => {
+    if (loading) return;
+
     // Optionally append chart request
     const messageToSend = includeChart
       ? `${content} (Please include a chart visualization if appropriate)`
       : content;
 
-    // Send message using new parts format
-    sendMessage({ 
-      role: 'user', 
-      parts: [{ type: 'text', text: messageToSend }] 
-    });
-  };
-
-  // Helper to extract text content from message parts
-  const getMessageContent = (msg: any): string => {
-    if (msg.content) return msg.content;
-    if (msg.parts) {
-      return msg.parts
-        .filter((part: any) => part.type === 'text')
-        .map((part: any) => part.text)
-        .join('');
-    }
-    return '';
-  };
-
-// Helper to extract chart data from messages
-  useEffect(() => {
-    if (messages.length === 0) return;
-    const lastMsg = messages[messages.length - 1];
-    
-    // Basic check for chart spec in the data parts of the last message
-    if (lastMsg.role === 'assistant' && lastMsg.parts) {
-       lastMsg.parts.forEach((part: any) => {
-          if (part.type === 'data' && part.data) {
-             const dataItem = part.data;
-             if (dataItem && typeof dataItem === 'object') {
-                 if (dataItem.chart_spec) {
-                    setCurrentChart((prev) => ({
-                       spec: dataItem.chart_spec,
-                       type: prev?.type
-                    }));
-                 }
-                 if (dataItem.chart_type) {
-                    setCurrentChart((prev) => ({
-                       spec: prev?.spec || ({} as ChartSpec),
-                       type: typeof dataItem.chart_type === 'string' ? dataItem.chart_type : dataItem.chart_type.type
-                    }));
-                 }
-             }
-          }
-       });
-    }
-  }, [messages]);
-
-  // Convert useChat messages to our Message type for MessageList
-  const formattedMessages: Message[] = messages.map((msg: any) => {
-    // Extract data parts for metadata
-    const dataParts = msg.parts ? msg.parts.filter((p: any) => p.type === 'data').map((p: any) => p.data) : [];
-    const metadata = dataParts.length > 0 ? Object.assign({}, ...dataParts) : undefined;
-    
-    return {
-        role: msg.role as 'user' | 'assistant',
-        content: getMessageContent(msg),
-        timestamp: msg.createdAt?.toISOString() || new Date().toISOString(),
-        metadata: metadata,
+    // Add user message
+    const userMessage: Message = {
+      role: 'user',
+      content: content,
+      timestamp: new Date().toISOString(),
     };
-  });
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+
+    try {
+      // Call REST endpoint
+      const response = await fetch('/api/v1/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+        },
+        body: JSON.stringify({
+          message: messageToSend,
+          history: messages.map(m => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: response.statusText }));
+        throw new Error(error.detail || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Add assistant message
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.message,
+        timestamp: data.timestamp,
+        metadata: data.metadata,
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Refresh usage info after successful response
+      if (mode === 'demo') {
+        fetchUsage();
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+
+      // Add error message
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-full bg-gray-50">
@@ -155,20 +147,13 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
           </div>
         )}
 
-        {/* Error banner */}
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 text-sm">
-            <strong>Error:</strong> {error.message}
-          </div>
-        )}
-
         {/* Messages area */}
-        <MessageList messages={formattedMessages} />
+        <MessageList messages={messages} />
 
         {/* Input area */}
         <MessageInput
           onSend={handleSendMessage}
-          disabled={isLoading}
+          disabled={loading}
           includeChart={includeChart}
           onToggleChart={setIncludeChart}
         />
@@ -178,9 +163,9 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
       <div className="hidden lg:flex lg:w-3/5 flex-col bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
           <h2 className="font-semibold text-gray-800">Chart Visualization</h2>
-          {isLoading && (
+          {loading && (
             <p className="text-xs text-blue-500 mt-1 animate-pulse">
-              Streaming response...
+              Processing...
             </p>
           )}
         </div>

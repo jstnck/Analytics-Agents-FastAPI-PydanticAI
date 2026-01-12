@@ -5,12 +5,15 @@ Supports two modes:
 2. Demo mode: Anonymous users with IP-based rate limiting
 """
 
+import logging
 from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import Header, HTTPException, Request, status
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Demo mode limits (anonymous users)
 DEMO_LIMITS = {
@@ -21,6 +24,34 @@ DEMO_LIMITS = {
 # In-memory storage for IP-based rate limiting
 # For production, replace with Redis
 _ip_usage: dict[str, dict] = {}
+
+# IP usage TTL: Clean up IPs with no queries in the last 24 hours
+IP_USAGE_TTL_HOURS = 24
+
+
+def cleanup_stale_ip_usage() -> int:
+    """Remove IP usage records that haven't made queries recently.
+
+    Returns:
+        Number of IP records cleaned up
+    """
+    global _ip_usage
+
+    cutoff_time = datetime.now() - timedelta(hours=IP_USAGE_TTL_HOURS)
+    initial_count = len(_ip_usage)
+
+    # Create new dict with only recently active IPs
+    _ip_usage = {
+        ip: data
+        for ip, data in _ip_usage.items()
+        if data.get("queries") and any(q > cutoff_time for q in data["queries"])
+    }
+
+    cleaned_count = initial_count - len(_ip_usage)
+    if cleaned_count > 0:
+        logger.info(f"Cleaned up {cleaned_count} stale IP usage records (inactive > {IP_USAGE_TTL_HOURS}h)")
+
+    return cleaned_count
 
 
 class DemoLimitError(Exception):

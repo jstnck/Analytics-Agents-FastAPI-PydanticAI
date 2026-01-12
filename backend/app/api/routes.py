@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 from uuid import uuid4
 
@@ -26,6 +26,34 @@ router = APIRouter()
 # In-memory storage for conversation trackers (keyed by conversation_id)
 # For production, replace with Redis or similar persistent store
 _conversation_trackers: dict[str, ConversationTracker] = {}
+
+# Conversation TTL: Clean up trackers inactive for 24 hours
+CONVERSATION_TTL_HOURS = 24
+
+
+def cleanup_stale_conversations() -> int:
+    """Remove conversation trackers that haven't been accessed recently.
+
+    Returns:
+        Number of conversations cleaned up
+    """
+    global _conversation_trackers
+
+    cutoff_time = datetime.now(UTC) - timedelta(hours=CONVERSATION_TTL_HOURS)
+    initial_count = len(_conversation_trackers)
+
+    # Create new dict with only active conversations
+    _conversation_trackers = {
+        conv_id: tracker
+        for conv_id, tracker in _conversation_trackers.items()
+        if tracker.last_accessed_at > cutoff_time
+    }
+
+    cleaned_count = initial_count - len(_conversation_trackers)
+    if cleaned_count > 0:
+        logger.info(f"Cleaned up {cleaned_count} stale conversations (inactive > {CONVERSATION_TTL_HOURS}h)")
+
+    return cleaned_count
 
 @router.get("/health")
 async def health_check() -> dict[str, Any]:
@@ -170,36 +198,35 @@ async def chat_stream(
         message_content = "".join(text_parts)
     
     if not message_content:
-        # Fallback or error if really empty
-        message_content = ""
+        raise HTTPException(status_code=400, detail="Empty message content")
 
     logger.info(f"Streaming chat request from {'admin' if user.is_admin else f'IP {user.ip_address}'}: {message_content[:100]}...")
 
+    # Get or create conversation tracker (demo users only)
+    tracker = None
+    if not user.is_admin:
+        if conversation_id not in _conversation_trackers:
+            _conversation_trackers[conversation_id] = ConversationTracker()
+        tracker = _conversation_trackers[conversation_id]
+
+    # Convert history
+    history = []
+    for msg in request.messages[:-1]:
+        content = msg.content
+        if not content and msg.parts:
+            text_parts = [p.text for p in msg.parts if p.type == 'text' and p.text]
+            content = "".join(text_parts)
+
+        if content:
+            history.append({"role": msg.role, "content": content})
+
+    # Call orchestrator and handle errors with proper HTTP status codes
     try:
-        # Get or create conversation tracker (demo users only)
-        tracker = None
-        if not user.is_admin:
-            if conversation_id not in _conversation_trackers:
-                _conversation_trackers[conversation_id] = ConversationTracker()
-            tracker = _conversation_trackers[conversation_id]
-
-        # Convert history
-        history = []
-        for msg in request.messages[:-1]:
-            content = msg.content
-            if not content and msg.parts:
-                text_parts = [p.text for p in msg.parts if p.type == 'text' and p.text]
-                content = "".join(text_parts)
-            
-            if content:
-                history.append({"role": msg.role, "content": content})
-
-        # Call orchestrator (same as non-streaming endpoint)
         result = await run_orchestrator(
             message_content, db_client, history, conversation_tracker=tracker
         )
 
-        # Record query for demo users
+        # Record query for demo users (after successful response)
         if not user.is_admin and user.ip_address:
             record_ip_query(user.ip_address)
 
@@ -210,28 +237,21 @@ async def chat_stream(
 
     except DemoLimitError as e:
         logger.warning(f"Demo limit exceeded for IP {user.ip_address}: {str(e)}")
-        # Return error in stream format
-        from fastapi_ai_sdk import AIStreamBuilder
-        builder = AIStreamBuilder()
-        builder.start()
-        builder.text(f"Error: {str(e)}")
-        builder.finish()
-        return builder
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(e),
+        ) from e
 
     except RateLimitError as e:
         logger.warning(f"Rate limit exceeded for conversation {conversation_id}: {str(e)}")
-        from fastapi_ai_sdk import AIStreamBuilder
-        builder = AIStreamBuilder()
-        builder.start()
-        builder.text(f"Rate limit exceeded: {str(e)}")
-        builder.finish()
-        return builder
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(e),
+        ) from e
 
     except Exception as e:
-        logger.exception(f"Unexpected error in streaming chat")
-        from fastapi_ai_sdk import AIStreamBuilder
-        builder = AIStreamBuilder()
-        builder.start()
-        builder.text(f"An error occurred: {str(e)}")
-        builder.finish()
-        return builder
+        logger.exception(f"Unexpected error in streaming chat endpoint")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        ) from e
