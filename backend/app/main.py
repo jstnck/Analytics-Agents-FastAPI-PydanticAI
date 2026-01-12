@@ -49,6 +49,30 @@ async def sync_motherduck_background() -> None:
         logger.error(f"MotherDuck sync failed: {e}", exc_info=True)
 
 
+async def cleanup_memory_task() -> None:
+    """Background task to periodically clean up in-memory caches."""
+    from app.api.routes import cleanup_stale_conversations
+    from app.auth import cleanup_stale_ip_usage
+
+    # Run cleanup every hour
+    CLEANUP_INTERVAL_SECONDS = 3600
+
+    while True:
+        try:
+            await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
+            logger.info("Running periodic memory cleanup...")
+
+            # Clean up stale conversations and IP usage
+            conv_cleaned = cleanup_stale_conversations()
+            ip_cleaned = cleanup_stale_ip_usage()
+
+            logger.info(
+                f"Memory cleanup complete: {conv_cleaned} conversations, {ip_cleaned} IP records removed"
+            )
+        except Exception as e:
+            logger.error(f"Memory cleanup task failed: {e}", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for startup and shutdown events."""
@@ -87,10 +111,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Run MotherDuck sync during startup (blocking to prevent connection conflicts)
     await sync_motherduck_background()
 
+    # Start background memory cleanup task
+    cleanup_task = asyncio.create_task(cleanup_memory_task())
+    logger.info("Started background memory cleanup task (runs every hour)")
+
     yield
 
     # Shutdown
-    logger.info("Shutting down")
+    logger.info("Shutting down...")
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        logger.info("Memory cleanup task cancelled")
+    logger.info("Shutdown complete")
 
 
 app = FastAPI(

@@ -6,6 +6,8 @@ Implements Strategy 1: Conservative Per-Agent Budget
 - Token-based limits are primary constraints (more important than request counts)
 """
 
+from datetime import UTC, datetime
+
 from pydantic_ai import UsageLimits
 
 
@@ -57,6 +59,8 @@ class ConversationTracker:
         self.total_requests = 0
         self.total_tokens = 0
         self.total_tool_calls = 0
+        self.created_at = datetime.now(UTC)
+        self.last_accessed_at = datetime.now(UTC)
 
     def add_usage(self, usage_info: dict) -> None:
         """Add usage from an agent run.
@@ -67,6 +71,7 @@ class ConversationTracker:
         self.total_requests += usage_info.get("requests", 0)
         self.total_tokens += usage_info.get("tokens", 0)
         self.total_tool_calls += usage_info.get("tool_calls", 0)
+        self.last_accessed_at = datetime.now(UTC)
 
     def check_limits(self) -> None:
         """Check if conversation has exceeded limits.
@@ -74,6 +79,8 @@ class ConversationTracker:
         Raises:
             RateLimitError: If any limit is exceeded
         """
+        self.last_accessed_at = datetime.now(UTC)
+
         if self.total_requests >= ConversationLimits.MAX_REQUESTS:
             raise RateLimitError(
                 f"Conversation request limit exceeded: {self.total_requests}/{ConversationLimits.MAX_REQUESTS}. "

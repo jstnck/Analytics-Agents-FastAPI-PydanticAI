@@ -25,7 +25,7 @@ class DuckDBClient:
 
     def _execute_sync(self, query: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """Synchronous execute helper for running in thread pool."""
-        with duckdb.connect(self.db_path, read_only=False) as conn:
+        with duckdb.connect(self.db_path, read_only=True) as conn:
             result = conn.execute(query, params or {})
             columns = [desc[0] for desc in result.description] if result.description else []
             rows = result.fetchall()
