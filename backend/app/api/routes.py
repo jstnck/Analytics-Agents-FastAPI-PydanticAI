@@ -4,11 +4,9 @@ from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from fastapi_ai_sdk import ai_endpoint
 
 from app.agents.orchestrator import run_orchestrator
 from app.agents.rate_limits import ConversationTracker, RateLimitError
-from app.api.streaming import stream_orchestrator_response
 from app.auth import (
     DEMO_LIMITS,
     DemoLimitError,
@@ -18,7 +16,7 @@ from app.auth import (
     record_ip_query,
 )
 from app.database.duckdb_client import DuckDBClient, get_db_client
-from app.schemas.chat import ChatRequest, ChatResponse, ErrorResponse, VercelChatRequest
+from app.schemas.chat import ChatRequest, ChatResponse, ErrorResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -164,93 +162,6 @@ async def chat(
 
     except Exception as e:
         logger.exception(f"Unexpected error in chat endpoint for conversation {conversation_id}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        ) from e
-
-
-@router.post("/chat/stream")
-@ai_endpoint()
-async def chat_stream(
-    request: VercelChatRequest,
-    db_client: Annotated[DuckDBClient, Depends(get_db_client)],
-    user: Annotated[User, Depends(get_current_user)],
-):
-    """
-    Streaming chat endpoint using Vercel AI SDK protocol.
-
-    Returns SSE stream compatible with useChat hook.
-    Same functionality as /chat but with real-time streaming.
-    """
-    if not request.messages:
-        # Should be handled by pydantic validation but just in case
-        raise HTTPException(status_code=400, detail="No messages provided")
-
-    # Extract conversation ID from request if present (Vercel SDK sends it as 'id')
-    conversation_id = request.id or f"conv-{uuid4().hex[:12]}"
-    
-    # Extract latest message content
-    last_msg = request.messages[-1]
-    message_content = last_msg.content
-    if not message_content and last_msg.parts:
-        text_parts = [p.text for p in last_msg.parts if p.type == 'text' and p.text]
-        message_content = "".join(text_parts)
-    
-    if not message_content:
-        raise HTTPException(status_code=400, detail="Empty message content")
-
-    logger.info(f"Streaming chat request from {'admin' if user.is_admin else f'IP {user.ip_address}'}: {message_content[:100]}...")
-
-    # Get or create conversation tracker (demo users only)
-    tracker = None
-    if not user.is_admin:
-        if conversation_id not in _conversation_trackers:
-            _conversation_trackers[conversation_id] = ConversationTracker()
-        tracker = _conversation_trackers[conversation_id]
-
-    # Convert history
-    history = []
-    for msg in request.messages[:-1]:
-        content = msg.content
-        if not content and msg.parts:
-            text_parts = [p.text for p in msg.parts if p.type == 'text' and p.text]
-            content = "".join(text_parts)
-
-        if content:
-            history.append({"role": msg.role, "content": content})
-
-    # Call orchestrator and handle errors with proper HTTP status codes
-    try:
-        result = await run_orchestrator(
-            message_content, db_client, history, conversation_tracker=tracker
-        )
-
-        # Record query for demo users (after successful response)
-        if not user.is_admin and user.ip_address:
-            record_ip_query(user.ip_address)
-
-        # Build and return stream response
-        builder = await stream_orchestrator_response(result, message_id=conversation_id)
-        logger.info(f"Streaming chat completed for conversation {conversation_id}")
-        return builder
-
-    except DemoLimitError as e:
-        logger.warning(f"Demo limit exceeded for IP {user.ip_address}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(e),
-        ) from e
-
-    except RateLimitError as e:
-        logger.warning(f"Rate limit exceeded for conversation {conversation_id}: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=str(e),
-        ) from e
-
-    except Exception as e:
-        logger.exception(f"Unexpected error in streaming chat endpoint")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),

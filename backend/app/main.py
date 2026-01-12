@@ -92,17 +92,41 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         os.environ["OPENAI_API_KEY"] = settings.openai_api_key
         logger.info("OpenAI API key configured")
 
-    # Configure Langfuse
+    # Configure Langfuse with OpenTelemetry
     if settings.langfuse_public_key and settings.langfuse_secret_key:
+        import base64
+
+        from opentelemetry import trace
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+        # Set environment variables for Langfuse
         os.environ["LANGFUSE_PUBLIC_KEY"] = settings.langfuse_public_key
         os.environ["LANGFUSE_SECRET_KEY"] = settings.langfuse_secret_key
-        os.environ["LANGFUSE_HOST"] = settings.langfuse_host
+        os.environ["LANGFUSE_BASE_URL"] = settings.langfuse_host
+
+        # Configure OpenTelemetry to export to Langfuse
+        langfuse_auth = base64.b64encode(
+            f"{settings.langfuse_public_key}:{settings.langfuse_secret_key}".encode()
+        ).decode()
+
+        os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = f"{settings.langfuse_host}/api/public/otel"
+        os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = f"Authorization=Basic {langfuse_auth}"
+
+        # Initialize OpenTelemetry TracerProvider
+        trace_provider = TracerProvider()
+        trace_provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+        trace.set_tracer_provider(trace_provider)
 
         # Enable PydanticAI instrumentation
         try:
             from pydantic_ai import Agent
+
             Agent.instrument_all()
-            logger.info(f"Langfuse instrumentation enabled at {settings.langfuse_host}")
+            logger.info(
+                f"Langfuse observability enabled: {settings.langfuse_host}/api/public/otel"
+            )
         except ImportError:
             logger.warning("Could not import PydanticAI for instrumentation")
     else:
