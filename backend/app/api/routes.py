@@ -4,8 +4,9 @@ from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import StreamingResponse
 
-from app.agents.orchestrator import run_orchestrator
+from app.agents.orchestrator import run_orchestrator, run_orchestrator_stream
 from app.agents.rate_limits import ConversationTracker, RateLimitError
 from app.auth import (
     DEMO_LIMITS,
@@ -166,3 +167,75 @@ async def chat(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e),
         ) from e
+
+
+@router.post("/chat/stream")
+async def chat_stream(
+    request: ChatRequest,
+    db_client: Annotated[DuckDBClient, Depends(get_db_client)],
+    user: Annotated[User, Depends(get_current_user)],
+) -> StreamingResponse:
+    """
+    Streaming chat endpoint with real-time progress updates.
+
+    Streams Server-Sent Events (SSE) with high-level agent steps:
+    - step events: "Analyzing your question...", "Querying database...", etc.
+    - final event: Complete response with message and metadata
+
+    Supports both demo and admin modes with same rate limits as /chat.
+    """
+    logger.info(
+        f"Streaming chat request from {'admin' if user.is_admin else f'IP {user.ip_address}'}: {request.message[:100]}..."
+    )
+
+    # Generate conversation ID if not provided
+    conversation_id = request.conversation_id or f"conv-{uuid4().hex[:12]}"
+    logger.debug(f"Conversation ID: {conversation_id}")
+
+    # Get or create conversation tracker (only for demo users)
+    tracker = None
+    if not user.is_admin:
+        if conversation_id not in _conversation_trackers:
+            _conversation_trackers[conversation_id] = ConversationTracker()
+            logger.debug(f"Created new conversation tracker for {conversation_id}")
+        tracker = _conversation_trackers[conversation_id]
+
+    # Convert history to simple dict format
+    history = None
+    if request.history:
+        history = [{"role": msg.role, "content": msg.content} for msg in request.history]
+        logger.debug(f"Including {len(history)} messages from conversation history")
+
+    # Wrapper to handle IP recording and error formatting
+    async def event_generator():
+        try:
+            # Stream orchestrator events
+            async for event in run_orchestrator_stream(
+                request.message, db_client, history, conversation_tracker=tracker
+            ):
+                yield event
+
+            # Record query for demo users (after successful completion)
+            if not user.is_admin and user.ip_address:
+                record_ip_query(user.ip_address)
+                logger.debug(f"Recorded query for IP: {user.ip_address}")
+
+        except DemoLimitError as e:
+            logger.warning(f"Demo limit exceeded for IP {user.ip_address}: {str(e)}")
+            yield f"data: {{'type': 'error', 'message': '{str(e)}', 'status': 429}}\n\n"
+        except RateLimitError as e:
+            logger.warning(f"Rate limit exceeded for conversation {conversation_id}: {str(e)}")
+            yield f"data: {{'type': 'error', 'message': '{str(e)}', 'status': 429}}\n\n"
+        except Exception as e:
+            logger.exception(f"Streaming error for conversation {conversation_id}")
+            yield f"data: {{'type': 'error', 'message': 'Internal server error', 'status': 500}}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",  # Disable nginx buffering
+        },
+    )

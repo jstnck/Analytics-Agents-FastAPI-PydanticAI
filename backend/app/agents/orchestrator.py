@@ -1,6 +1,8 @@
 """Orchestrator agent that coordinates specialist agents."""
 
+import json
 import logging
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from typing import Any
 
@@ -210,4 +212,115 @@ async def run_orchestrator(
         raise
     except Exception as e:
         logger.exception(f"Orchestrator failed for question: {user_question}")
+        raise
+
+
+# Map tool names to user-friendly step messages
+STEP_MESSAGES = {
+    "call_sql_agent": "Querying database...",
+    "call_viz_agent": "Generating chart...",
+}
+
+
+async def run_orchestrator_stream(
+    user_question: str,
+    db_client: DuckDBClient,
+    conversation_history: list[dict[str, str]] | None = None,
+    conversation_tracker: ConversationTracker | None = None,
+) -> AsyncGenerator[str, None]:
+    """
+    Run the orchestrator agent with streaming support.
+
+    Yields Server-Sent Events (SSE) with high-level progress steps:
+    - step events: User-friendly progress messages
+    - final event: Complete response with metadata
+
+    Args:
+        user_question: The user's question
+        db_client: Database client instance
+        conversation_history: Optional conversation history
+        conversation_tracker: Optional tracker for enforcing limits
+
+    Yields:
+        SSE-formatted strings (data: {json}\n\n)
+
+    Raises:
+        RateLimitError: If conversation limits are exceeded
+    """
+    logger.info(f"Orchestrator streaming for question: {user_question[:100]}...")
+    deps = OrchestratorDeps(db_client=db_client)
+
+    # Check conversation limits before running
+    if conversation_tracker:
+        logger.debug(f"Checking conversation limits: {conversation_tracker.get_usage_summary()}")
+        conversation_tracker.check_limits()
+
+    # Emit initial thinking step
+    yield f"data: {json.dumps({'type': 'step', 'message': 'Analyzing your question...'})}\n\n"
+
+    try:
+        # Run agent with streaming (use async context manager)
+        if conversation_history:
+            logger.debug(f"Running with conversation history ({len(conversation_history)} messages)")
+            stream_ctx = orchestrator_agent.run_stream(
+                user_question,
+                deps=deps,
+                message_history=conversation_history,
+                usage_limits=ORCHESTRATOR_LIMITS,
+            )
+        else:
+            logger.debug("Running without conversation history")
+            stream_ctx = orchestrator_agent.run_stream(
+                user_question, deps=deps, usage_limits=ORCHESTRATOR_LIMITS
+            )
+
+        # Track which steps we've already emitted
+        emitted_steps: set[str] = set()
+
+        async with stream_ctx as result:
+            # Stream the result and emit step events for tool calls
+            async for _message in result.stream(debounce_by=0):
+                # Check all messages for tool calls
+                all_messages = result.all_messages()
+                for msg in all_messages:
+                    # Look for tool use in message parts
+                    if hasattr(msg, "parts"):
+                        for part in msg.parts:
+                            if hasattr(part, "tool_name"):
+                                tool_name = part.tool_name
+                                if tool_name in STEP_MESSAGES and tool_name not in emitted_steps:
+                                    step_msg = STEP_MESSAGES[tool_name]
+                                    logger.debug(f"Emitting step: {step_msg}")
+                                    yield f"data: {json.dumps({'type': 'step', 'message': step_msg})}\n\n"
+                                    emitted_steps.add(tool_name)
+
+            # Get the final validated output from streamed result
+            output = await result.get_output()
+
+            # Track usage if tracker provided
+            if conversation_tracker and result.usage():
+                usage = result.usage()
+                conversation_tracker.add_usage(
+                    {
+                        "requests": usage.requests,
+                        "tokens": usage.total_tokens,
+                        "tool_calls": len(result.all_messages()),
+                    }
+                )
+                logger.info(
+                    f"Orchestrator streaming usage - Requests: {usage.requests}, "
+                    f"Tokens: {usage.total_tokens}, Tool calls: {len(result.all_messages())}"
+                )
+
+            # Emit final response
+            logger.info("Orchestrator streaming completed successfully")
+            yield f"data: {json.dumps({'type': 'final', 'message': output.message, 'metadata': output.metadata})}\n\n"
+
+    except RateLimitError as e:
+        logger.warning(f"Rate limit exceeded: {str(e)}")
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        raise
+    except Exception as e:
+        logger.exception(f"Orchestrator streaming failed for question: {user_question}")
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
         raise

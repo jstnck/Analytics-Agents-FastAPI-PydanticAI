@@ -16,6 +16,7 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [includeChart, setIncludeChart] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [streamingStep, setStreamingStep] = useState<string | null>(null);
   const [currentChart, setCurrentChart] = useState<{
     spec: ChartSpec;
     type?: string;
@@ -76,10 +77,11 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
     };
     setMessages(prev => [...prev, userMessage]);
     setLoading(true);
+    setStreamingStep(null);
 
     try {
-      // Call REST endpoint
-      const response = await fetch('/api/v1/chat', {
+      // Call streaming endpoint
+      const response = await fetch('/api/v1/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -99,16 +101,57 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
         throw new Error(error.detail || `HTTP ${response.status}`);
       }
 
-      const data = await response.json();
+      if (!response.body) {
+        throw new Error('No response body');
+      }
 
-      // Add assistant message
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.message,
-        timestamp: data.timestamp,
-        metadata: data.metadata,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      // Process SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // Decode chunk and add to buffer
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE events (separated by \n\n)
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || ''; // Keep incomplete event in buffer
+
+        for (const event of events) {
+          if (!event.trim()) continue;
+
+          // Parse SSE event (format: "data: {json}")
+          const dataMatch = event.match(/^data: (.+)$/m);
+          if (!dataMatch) continue;
+
+          try {
+            const data = JSON.parse(dataMatch[1]);
+
+            if (data.type === 'step') {
+              // Update streaming step indicator
+              setStreamingStep(data.message);
+            } else if (data.type === 'final') {
+              // Add final assistant message
+              const assistantMessage: Message = {
+                role: 'assistant',
+                content: data.message,
+                timestamp: new Date().toISOString(),
+                metadata: data.metadata,
+              };
+              setMessages(prev => [...prev, assistantMessage]);
+              setStreamingStep(null);
+            } else if (data.type === 'error') {
+              throw new Error(data.message);
+            }
+          } catch (parseError) {
+            console.error('Failed to parse SSE event:', parseError);
+          }
+        }
+      }
 
       // Refresh usage info after successful response
       if (mode === 'demo') {
@@ -124,6 +167,7 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
         timestamp: new Date().toISOString(),
       };
       setMessages(prev => [...prev, errorMessage]);
+      setStreamingStep(null);
     } finally {
       setLoading(false);
     }
@@ -149,6 +193,16 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
 
         {/* Messages area */}
         <MessageList messages={messages} />
+
+        {/* Streaming step indicator */}
+        {loading && streamingStep && (
+          <div className="px-4 py-2 bg-blue-50 border-t border-blue-100">
+            <div className="flex items-center space-x-2 text-sm text-blue-700">
+              <div className="animate-pulse">●</div>
+              <span>{streamingStep}</span>
+            </div>
+          </div>
+        )}
 
         {/* Input area */}
         <MessageInput
