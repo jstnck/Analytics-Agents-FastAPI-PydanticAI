@@ -1,0 +1,213 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main body silhouette - smooth, naturalistic curves -->
+  <path
+    d="M15 65
+       Q10 58 14 50
+       Q20 42 32 38
+       Q48 34 62 40
+       Q76 46 80 58
+       Q83 68 76 76
+       Q66 84 48 85
+       Q28 86 18 78
+       Q12 72 15 65"
+    fill="hsl(145, 20%, 80%)"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.6"
+  />
+
+  <!-- Breast coloring -->
+  <path
+    d="M60 52
+       Q66 56 70 66
+       Q72 76 64 80
+       Q58 74 58 64
+       Q58 56 60 52"
+    fill="hsl(30, 20%, 35%)"
+    stroke="none"
+    opacity="0.6"
+  />
+
+  <!-- Wing primary feathers - fine parallel strokes -->
+  <g stroke="hsl(25, 30%, 20%)" stroke-linecap="round" fill="none">
+    <path d="M24 54 Q36 49 54 54" stroke-width="0.4" opacity="0.7" />
+    <path d="M22 58 Q38 52 58 58" stroke-width="0.35" opacity="0.6" />
+    <path d="M20 63 Q40 56 60 62" stroke-width="0.35" opacity="0.55" />
+    <path d="M22 68 Q42 62 58 66" stroke-width="0.3" opacity="0.5" />
+    <path d="M26 72 Q44 67 54 70" stroke-width="0.3" opacity="0.45" />
+  </g>
+
+  <!-- Wing coverts - fine detail lines -->
+  <g stroke="hsl(25, 30%, 20%)" stroke-linecap="round" fill="none" opacity="0.3">
+    <path d="M32 50 L36 52" stroke-width="0.25" />
+    <path d="M38 48 L42 50" stroke-width="0.25" />
+    <path d="M44 49 L48 51" stroke-width="0.25" />
+    <path d="M30 56 L34 58" stroke-width="0.25" />
+    <path d="M40 54 L44 56" stroke-width="0.25" />
+    <path d="M48 55 L52 57" stroke-width="0.25" />
+  </g>
+
+  <!-- Speculum (iridescent wing patch) -->
+  <path
+    d="M32 62 L46 59 L48 64 L34 67 Z"
+    fill="hsl(152, 45%, 25%)"
+    opacity="0.35"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.2"
+  />
+
+  <!-- Neck - elegant curve connecting to head -->
+  <path
+    d="M62 48 Q66 42 68 34"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.5"
+    fill="none"
+  />
+
+  <!-- White neck ring -->
+  <path
+    d="M58 46 Q64 48 68 46"
+    stroke="hsl(40, 25%, 92%)"
+    stroke-width="2"
+    stroke-linecap="round"
+    fill="none"
+  />
+  <path
+    d="M58 46 Q64 48 68 46"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.25"
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.2"
+  />
+
+  <!-- Head - smooth iridescent green -->
+  <path
+    d="M64 38
+       Q62 30 66 22
+       Q72 14 82 16
+       Q92 20 92 32
+       Q90 44 78 48
+       Q68 50 64 44
+       Q62 42 64 38"
+    fill="hsl(152, 45%, 25%)"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.5"
+  />
+
+  <!-- Head iridescence - subtle curved highlights -->
+  <g stroke="hsl(25, 30%, 20%)" fill="none" opacity="0.2" stroke-linecap="round">
+    <path d="M72 18 Q80 16 86 22" stroke-width="0.25" />
+    <path d="M70 24 Q78 22 86 28" stroke-width="0.2" />
+    <path d="M68 32 Q76 30 84 36" stroke-width="0.2" />
+  </g>
+
+  <!-- Crown detail -->
+  <path
+    d="M76 16 Q78 14 82 16"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.3"
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.4"
+  />
+
+  <!-- Beak - realistic duck bill -->
+  <path
+    d="M88 28
+       Q92 26 96 28
+       Q99 30 98 34
+       Q96 38 92 38
+       Q88 38 86 36
+       Q84 34 86 30
+       Q87 28 88 28"
+    fill="hsl(35, 85%, 55%)"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.5"
+  />
+
+  <!-- Beak detail - nail and nostril -->
+  <path
+    d="M96 30 Q98 32 96 35"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.35"
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.5"
+  />
+  <ellipse
+    cx="90"
+    cy="31"
+    rx="0.8"
+    ry="0.5"
+    fill="hsl(25, 30%, 20%)"
+    opacity="0.5"
+  />
+
+  <!-- Eye - detailed with proper anatomy -->
+  <ellipse
+    cx="80"
+    cy="28"
+    rx="2.5"
+    ry="3"
+    fill="hsl(25, 30%, 20%)"
+  />
+  <ellipse
+    cx="80"
+    cy="28"
+    rx="1.6"
+    ry="2"
+    fill="hsl(25, 25%, 10%)"
+  />
+  <circle
+    cx="79.2"
+    cy="27"
+    r="0.6"
+    fill="hsl(40, 25%, 92%)"
+  />
+
+  <!-- Tail feathers - delicate upward curl -->
+  <g stroke="hsl(25, 30%, 20%)" stroke-linecap="round" fill="none">
+    <path d="M16 72 Q10 68 8 60" stroke-width="0.5" opacity="0.8" />
+    <path d="M14 76 Q8 74 6 66" stroke-width="0.45" opacity="0.7" />
+    <path d="M16 78 Q10 78 6 72" stroke-width="0.4" opacity="0.6" />
+  </g>
+
+  <!-- Characteristic mallard tail curl -->
+  <path
+    d="M12 70 Q8 68 8 62 Q10 58 14 60"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.6"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Water reflection suggestion -->
+  <g stroke="hsl(25, 30%, 20%)" fill="none" opacity="0.15" stroke-linecap="round">
+    <path d="M24 92 Q40 90 56 92 Q72 94 84 92" stroke-width="0.3" />
+    <path d="M32 96 Q48 94 64 96" stroke-width="0.25" />
+  </g>
+
+  <!-- Fine body texture - subtle hatching -->
+  <g stroke="hsl(25, 30%, 20%)" stroke-linecap="round" fill="none" opacity="0.12">
+    <path d="M36 52 L38 54" stroke-width="0.2" />
+    <path d="M42 50 L44 52" stroke-width="0.2" />
+    <path d="M34 58 L36 60" stroke-width="0.2" />
+    <path d="M42 58 L44 60" stroke-width="0.2" />
+    <path d="M48 56 L50 58" stroke-width="0.2" />
+    <path d="M36 64 L38 66" stroke-width="0.2" />
+    <path d="M44 64 L46 66" stroke-width="0.2" />
+    <path d="M50 62 L52 64" stroke-width="0.2" />
+    <path d="M38 70 L40 72" stroke-width="0.2" />
+    <path d="M46 70 L48 72" stroke-width="0.2" />
+  </g>
+
+  <!-- Belly contour line -->
+  <path
+    d="M28 80 Q44 84 60 80"
+    stroke="hsl(25, 30%, 20%)"
+    stroke-width="0.25"
+    stroke-linecap="round"
+    fill="none"
+    opacity="0.2"
+  />
+</svg>

@@ -174,18 +174,18 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
   };
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-full bg-background court-pattern">
       {/* Left side: Chat interface */}
-      <div className="flex flex-col w-full lg:w-2/5 border-r border-gray-200">
+      <div className="flex flex-col w-full lg:w-2/5 border-r border-border">
         {/* Usage info banner for demo users */}
         {mode === 'demo' && usageInfo && (
-          <div className="bg-blue-50 border-b border-blue-200 px-4 py-2 text-sm">
+          <div className="bg-primary/10 border-b border-primary/20 px-4 py-2 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-blue-700">
+              <span className="text-foreground font-medium">
                 Demo Mode: {usageInfo.queries_remaining || 0} / {usageInfo.queries_limit || 3} queries remaining
               </span>
               {usageInfo.queries_remaining === 0 && (
-                <span className="text-xs text-red-600 font-semibold">Limit reached</span>
+                <span className="text-xs text-destructive font-semibold">Limit reached</span>
               )}
             </div>
           </div>
@@ -196,8 +196,8 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
 
         {/* Streaming step indicator */}
         {loading && streamingStep && (
-          <div className="px-4 py-2 bg-blue-50 border-t border-blue-100">
-            <div className="flex items-center space-x-2 text-sm text-blue-700">
+          <div className="px-4 py-2 bg-assist-teal/10 border-t border-assist-teal/20">
+            <div className="flex items-center space-x-2 text-sm text-assist-teal">
               <div className="animate-pulse">●</div>
               <span>{streamingStep}</span>
             </div>
@@ -214,11 +214,11 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
       </div>
 
       {/* Right side: Chart panel */}
-      <div className="hidden lg:flex lg:w-3/5 flex-col bg-white">
-        <div className="border-b border-gray-200 px-4 py-3">
-          <h2 className="font-semibold text-gray-800">Chart Visualization</h2>
+      <div className="hidden lg:flex lg:w-3/5 flex-col bg-card">
+        <div className="border-b border-border px-4 py-3">
+          <h2 className="font-display font-semibold text-foreground">Chart Visualization</h2>
           {loading && (
-            <p className="text-xs text-blue-500 mt-1 animate-pulse">
+            <p className="text-xs text-primary mt-1 animate-pulse">
               Processing...
             </p>
           )}
@@ -228,10 +228,10 @@ export default function ChatInterface({ mode, apiKey }: ChatInterfaceProps) {
           {currentChart ? (
             <ChartRenderer chartSpec={currentChart.spec} chartType={currentChart.type} />
           ) : (
-            <div className="flex h-full items-center justify-center text-gray-400">
+            <div className="flex h-full items-center justify-center text-muted-foreground">
               <div className="text-center">
                 <svg
-                  className="w-16 h-16 mx-auto mb-4 text-gray-300"
+                  className="w-16 h-16 mx-auto mb-4 text-muted"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

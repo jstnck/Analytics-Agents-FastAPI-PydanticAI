@@ -1,0 +1,53 @@
+# NBA Analytics Agent - Development Stack
+# Minimal setup without Langfuse observability
+#
+# Usage:
+#   docker-compose -f docker-compose.dev.yml up --build
+
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: analytics-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+      marimo:
+        condition: service_healthy
+    networks:
+      - analytics-network
+
+  backend:
+    extends:
+      file: docker-compose.yml
+      service: backend
+
+  frontend:
+    extends:
+      file: docker-compose.yml
+      service: frontend
+
+  marimo:
+    extends:
+      file: docker-compose.yml
+      service: marimo
+
+  marimo-edit:
+    extends:
+      file: docker-compose.yml
+      service: marimo-edit
+
+networks:
+  analytics-network:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local

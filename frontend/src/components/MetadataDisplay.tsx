@@ -21,12 +21,12 @@ export default function MetadataDisplay({ metadata }: MetadataDisplayProps) {
   }
 
   return (
-    <div className="mt-3 border-t border-gray-200 pt-3">
+    <div className="mt-3 border-t border-border pt-3">
       {/* Chart Visualization - Always visible when available */}
       {hasChart && (
         <div className="mb-4">
-          <div className="text-xs font-semibold text-gray-700 mb-2">Visualization:</div>
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="text-xs font-semibold text-foreground mb-2">Visualization:</div>
+          <div className="bg-background border border-border rounded-xl p-4">
             <ChartRenderer
               chartSpec={metadata.chart_spec!}
               chartType={metadata.chart_type}
@@ -40,7 +40,7 @@ export default function MetadataDisplay({ metadata }: MetadataDisplayProps) {
         <>
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            className="text-xs font-medium text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
           >
             {isExpanded ? '▼' : '▶'} {hasSqlQuery ? 'SQL Query & Details' : 'Details'}
           </button>
@@ -50,8 +50,8 @@ export default function MetadataDisplay({ metadata }: MetadataDisplayProps) {
               {/* SQL Query */}
               {hasSqlQuery && (
                 <div>
-                  <div className="text-xs font-semibold text-gray-700 mb-1">SQL Query:</div>
-                  <div className="bg-gray-900 text-gray-100 p-3 rounded text-xs font-mono overflow-x-auto">
+                  <div className="text-xs font-semibold text-foreground mb-1">SQL Query:</div>
+                  <div className="bg-foreground text-background p-3 rounded-xl text-xs font-mono overflow-x-auto">
                     <pre className="whitespace-pre-wrap break-words">{metadata.sql_query}</pre>
                   </div>
                 </div>
@@ -60,8 +60,8 @@ export default function MetadataDisplay({ metadata }: MetadataDisplayProps) {
               {/* Data Summary */}
               {hasDataSummary && (
                 <div>
-                  <div className="text-xs font-semibold text-gray-700 mb-1">Data Summary:</div>
-                  <div className="bg-gray-50 p-3 rounded text-xs">
+                  <div className="text-xs font-semibold text-foreground mb-1">Data Summary:</div>
+                  <div className="bg-muted p-3 rounded-xl text-xs text-muted-foreground">
                     <pre className="whitespace-pre-wrap break-words">
                       {JSON.stringify(metadata.data_summary, null, 2)}
                     </pre>

@@ -1,0 +1,222 @@
+/* HOOPTICS Analytics Design System - Marimo Notebook Styling */
+
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Design System Color Tokens */
+:root {
+  /* Brand Colors */
+  --primary: hsl(18, 90%, 60%);           /* Coral Orange */
+  --assist-teal: hsl(165, 70%, 45%);      /* Assist Teal */
+  --victory-gold: hsl(45, 100%, 60%);     /* Victory Gold */
+  --secondary: hsl(260, 60%, 94%);        /* Secondary Purple */
+  --court-line: hsl(18, 80%, 55%);        /* Court Line Orange */
+
+  --background: hsl(45, 30%, 97%);        /* Warm Cream */
+  --foreground: hsl(25, 30%, 20%);        /* Dark Brown */
+  --muted: hsl(45, 20%, 92%);
+  --muted-foreground: hsl(25, 15%, 45%);
+  --border: hsl(25, 20%, 88%);
+
+  /* Semantic Colors */
+  --primary-color: var(--primary);
+  --accent-color: var(--assist-teal);
+  --background-color: var(--background);
+  --text-color: var(--foreground);
+
+  /* Marimo Official Font Variables (Stable API) */
+  --marimo-text-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --marimo-heading-font: 'Space Grotesk', sans-serif;
+  --marimo-monospace-font: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+/* Base Styling */
+body {
+  font-family: var(--marimo-text-font);
+  background: var(--background-color);
+  color: var(--text-color);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings with Display Font */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--marimo-heading-font);
+  color: var(--foreground);
+}
+
+/* Primary Actions & Buttons */
+button[class*="primary"],
+button[type="submit"],
+.mo-button-primary {
+  background-color: var(--primary) !important;
+  color: white !important;
+  border-radius: 1rem;
+  transition: all 0.2s ease;
+}
+
+button[class*="primary"]:hover,
+button[type="submit"]:hover,
+.mo-button-primary:hover {
+  background-color: hsl(18, 90%, 55%) !important;
+  box-shadow: 0 4px 20px -4px hsl(18, 90%, 60%, 0.15);
+}
+
+/* Accent Elements */
+a,
+.mo-link {
+  color: var(--assist-teal);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover,
+.mo-link:hover {
+  color: var(--primary);
+}
+
+/* Input Fields */
+input[type="text"],
+input[type="search"],
+textarea,
+.mo-input {
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: white;
+  font-family: var(--marimo-text-font);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+textarea:focus,
+.mo-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px hsl(18, 90%, 60%, 0.1);
+}
+
+/* Cards & Panels */
+.mo-card,
+[data-cell-role="output"] {
+  background: white;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px -4px hsl(18, 90%, 60%, 0.08), 0 2px 8px -2px hsl(0, 0%, 0%, 0.04);
+  border: 1px solid var(--border);
+}
+
+/* Code Blocks */
+pre,
+code {
+  font-family: var(--marimo-monospace-font);
+  background-color: var(--muted) !important;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+}
+
+/* Tables */
+table {
+  border-collapse: collapse;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -4px hsl(18, 90%, 60%, 0.08);
+}
+
+thead {
+  background-color: var(--primary);
+  color: white;
+}
+
+th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-family: var(--marimo-heading-font);
+}
+
+td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:hover {
+  background-color: hsl(45, 30%, 95%);
+}
+
+/* Cell Outputs */
+[data-cell-role="output"] {
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+/* Status & Loading States */
+.mo-loading,
+.mo-spinner {
+  color: var(--assist-teal);
+}
+
+/* Scrollbars (WebKit browsers) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+  border-radius: 0.5rem;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--assist-teal);
+  border-radius: 0.5rem;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Markdown Content Styling */
+.mo-markdown h1 { font-size: 2rem; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+.mo-markdown h2 { font-size: 1.5rem; margin-top: 1.25rem; margin-bottom: 0.625rem; }
+.mo-markdown h3 { font-size: 1.25rem; margin-top: 1rem; margin-bottom: 0.5rem; }
+
+.mo-markdown ul,
+.mo-markdown ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+
+.mo-markdown li {
+  margin: 0.25rem 0;
+}
+
+.mo-markdown code {
+  background: var(--muted);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  font-size: 0.875em;
+}
+
+.mo-markdown strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* Error States */
+.mo-error,
+[class*="error"] {
+  color: hsl(0, 70%, 55%);
+  background-color: hsl(0, 70%, 55%, 0.1);
+  border-color: hsl(0, 70%, 55%);
+  border-radius: 1rem;
+  padding: 0.75rem;
+}
+
+/* Logo and Header Styling */
+.mo-html img[alt="HOOPTICS Analytics"] {
+  filter: drop-shadow(0 2px 8px hsl(18, 90%, 60%, 0.15));
+  transition: transform 0.3s ease;
+}
+
+.mo-html img[alt="HOOPTICS Analytics"]:hover {
+  transform: scale(1.05);
+}

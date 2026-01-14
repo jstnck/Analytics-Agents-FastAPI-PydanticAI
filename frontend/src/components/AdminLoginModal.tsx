@@ -25,13 +25,13 @@ export default function AdminLoginModal({ onLogin, onClose }: AdminLoginModalPro
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-foreground/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-card rounded-2xl shadow-card-glow max-w-md w-full p-6 border border-border">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-900">Admin Login</h2>
+          <h2 className="text-xl font-display font-bold text-foreground">Admin Login</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <svg
               className="w-6 h-6"
@@ -49,13 +49,13 @@ export default function AdminLoginModal({ onLogin, onClose }: AdminLoginModalPro
           </button>
         </div>
 
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           Enter your API key to access unlimited queries and full features.
         </p>
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="apiKey" className="block text-sm font-medium text-foreground mb-2">
               API Key
             </label>
             <input
@@ -66,12 +66,12 @@ export default function AdminLoginModal({ onLogin, onClose }: AdminLoginModalPro
                 setApiKey(e.target.value);
                 setError(null);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-border rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary focus:outline-none transition-all"
               placeholder="Enter your API key"
               autoFocus
             />
             {error && (
-              <p className="text-red-600 text-sm mt-2">{error}</p>
+              <p className="text-destructive text-sm mt-2">{error}</p>
             )}
           </div>
 
@@ -79,21 +79,21 @@ export default function AdminLoginModal({ onLogin, onClose }: AdminLoginModalPro
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex-1 px-4 py-2 border border-border text-foreground rounded-full hover:bg-muted transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors"
             >
               Login
             </button>
           </div>
         </form>
 
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <p className="text-xs text-gray-500">
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground">
             Don't have an API key? Contact the administrator to get access.
           </p>
         </div>
