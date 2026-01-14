@@ -18,9 +18,9 @@ export default function MessageList({ messages }: MessageListProps) {
 
   if (messages.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-gray-500">
+      <div className="flex h-full items-center justify-center text-muted-foreground">
         <div className="text-center">
-          <p className="text-lg font-medium">Welcome to NBA Analytics</p>
+          <p className="text-lg font-display font-semibold text-foreground">Welcome to HOOPTICS</p>
           <p className="mt-2">Ask me anything about NBA teams, stats, games, and more!</p>
         </div>
       </div>
@@ -35,14 +35,14 @@ export default function MessageList({ messages }: MessageListProps) {
           className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
         >
           <div
-            className={`max-w-[80%] rounded-lg px-4 py-3 ${
+            className={`max-w-[80%] rounded-2xl px-4 py-3 ${
               message.role === 'user'
-                ? 'bg-blue-600 text-white'
-                : 'bg-white border border-gray-200 text-gray-800'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card border border-border text-card-foreground'
             }`}
           >
             <div className="mb-1 text-xs font-semibold opacity-70">
-              {message.role === 'user' ? 'You' : 'NBA Agent'}
+              {message.role === 'user' ? 'You' : 'HOOPTICS Agent'}
             </div>
             <div className="whitespace-pre-wrap break-words">{message.content}</div>
 

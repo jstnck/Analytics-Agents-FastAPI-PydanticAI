@@ -1,0 +1,101 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.2"
+  },
+  "cells": [
+    {
+      "id": "bkHC",
+      "code_hash": "79cafc7773af479d1bc0442886297a2e",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"available-tables\">Available Tables</h2>\n<ul>\n<li><strong>dmt.dmt_schedule</strong> - Game schedule with dates, teams</li>\n<li><strong>dmt.dmt_team_per_game_stats</strong> - Team offensive statistics per game</li>\n<li><strong>dmt.dmt_opponent_per_game_stats</strong> - Opponent statistics (defensive)</li>\n<li><strong>dmt.dmt_team_differential</strong> - Team performance differentials</li>\n<li><strong>dmt.dmt_feature_win_predict</strong> - Win prediction features</li>\n<li><strong>dmt.dmt_ml_win_predictions</strong> - ML model predictions</li>\n<li><strong>dmt.dmt_cities</strong> - City reference data</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "c1db049998c64e6d5ff27ecbc6f8525e",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"direct-sql-query\">Direct SQL Query</h2></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "emfo",
+      "code_hash": "b36849210f9b6d8af8a0ed2227a86c23",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><hr /></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Hbol",
+      "code_hash": "7893f74df1e45f62a1da870e6e6734d1",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "MJUe",
+      "code_hash": "231983169d5a284c1b82e934ac5e59fe",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "eefb5d084945f567956b66eaa6a85291",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "1906d5706c6b0da7f74778f99e7eb207",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Xref",
+      "code_hash": "f9cfab784b20a5dd56eba0fea4c56230",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "18910a34ead06489fb6cb79d0e4aa375",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "d049bcd9ecb031d6df3014e1424fb00a",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "a040c02f220c4d7abd6a6ebd699e657c",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "73c0f7a923ca544bd8507979986a60dd",
+      "outputs": [],
+      "console": []
+    }
+  ]
+}

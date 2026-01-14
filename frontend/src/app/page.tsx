@@ -4,6 +4,7 @@ import { useState } from 'react';
 import ChatInterface from '@/components/ChatInterface';
 import LandingPage from '@/components/LandingPage';
 import AdminLoginModal from '@/components/AdminLoginModal';
+import { Logo } from '@/components/Logo';
 
 type AppMode = 'landing' | 'demo' | 'admin';
 
@@ -48,33 +49,37 @@ export default function Home() {
 
   // Show chat interface for demo or admin mode
   return (
-    <main className="flex flex-col h-screen">
+    <main className="flex flex-col h-screen bg-background">
       {/* Header */}
-      <header className="bg-blue-600 text-white py-4 px-6 shadow-md">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">NBA Analytics Agent</h1>
-            <p className="text-sm text-blue-100 mt-1">
-              Ask questions about NBA teams, statistics, games, and more
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            {mode === 'demo' && (
-              <span className="text-xs bg-blue-500 px-3 py-1 rounded-full">
-                Demo Mode
-              </span>
-            )}
-            {mode === 'admin' && (
-              <span className="text-xs bg-green-500 px-3 py-1 rounded-full">
-                Admin Mode
-              </span>
-            )}
-            <button
-              onClick={handleBackToLanding}
-              className="text-sm bg-blue-500 hover:bg-blue-400 px-4 py-2 rounded transition-colors"
-            >
-              ← Back
-            </button>
+      <header className="bg-card border-b border-border shadow-sm">
+        <div className="container mx-auto px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Logo size="sm" />
+              <div className="hidden sm:block border-l border-border pl-4">
+                <p className="text-xs text-muted-foreground">
+                  Ask questions about NBA teams, statistics, games, and more
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {mode === 'demo' && (
+                <span className="pill-badge text-xs">
+                  Demo Mode
+                </span>
+              )}
+              {mode === 'admin' && (
+                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-assist-teal/10 border border-assist-teal/20 text-assist-teal">
+                  Admin Mode
+                </span>
+              )}
+              <button
+                onClick={handleBackToLanding}
+                className="text-sm bg-muted hover:bg-muted/80 text-foreground px-4 py-2 rounded-full transition-colors font-medium"
+              >
+                ← Back
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -85,7 +90,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-gray-100 text-gray-600 text-xs py-2 px-6 text-center border-t border-gray-200">
+      <footer className="bg-card text-muted-foreground text-xs py-2 px-6 text-center border-t border-border">
         Powered by PydanticAI & FastAPI
       </footer>
     </main>

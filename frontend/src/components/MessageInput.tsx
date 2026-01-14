@@ -33,7 +33,7 @@ export default function MessageInput({
   };
 
   return (
-    <div className="border-t border-gray-200 bg-white p-4">
+    <div className="border-t border-border bg-card p-4">
       <div className="flex gap-2">
         <textarea
           value={input}
@@ -42,29 +42,29 @@ export default function MessageInput({
           placeholder="Ask about NBA stats... (e.g., 'What are the Lakers stats?')"
           disabled={disabled}
           rows={2}
-          className="flex-1 resize-none rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+          className="flex-1 resize-none rounded-xl border border-border px-4 py-2 bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:bg-muted disabled:cursor-not-allowed transition-all"
         />
         <button
           onClick={handleSend}
           disabled={disabled || !input.trim()}
-          className="rounded-lg bg-blue-600 px-6 py-2 text-white font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          className="rounded-full bg-primary px-6 py-2 text-primary-foreground font-medium hover:bg-primary/90 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
         >
           {disabled ? 'Sending...' : 'Send'}
         </button>
       </div>
 
       <div className="flex items-center justify-between mt-2">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-muted-foreground">
           Press Enter to send, Shift+Enter for new line
         </p>
 
         {/* Include chart checkbox */}
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer hover:text-gray-900">
+        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer hover:text-primary transition-colors">
           <input
             type="checkbox"
             checked={includeChart}
             onChange={(e) => onToggleChart(e.target.checked)}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+            className="w-4 h-4 text-primary border-border rounded focus:ring-primary focus:ring-2"
           />
           <span className="select-none">Include chart with answer</span>
         </label>

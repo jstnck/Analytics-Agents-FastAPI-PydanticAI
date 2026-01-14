@@ -21,6 +21,8 @@ services:
         condition: service_healthy
       frontend:
         condition: service_started
+      marimo:
+        condition: service_healthy
       langfuse-web:
         condition: service_started
     networks:
@@ -65,6 +67,51 @@ services:
         condition: service_healthy
     networks:
       - analytics-network
+
+  marimo:
+    build:
+      context: ./notebooks
+      dockerfile: Dockerfile
+    container_name: analytics-marimo
+    expose:
+      - "3001"
+    volumes:
+      - ./data:/app/data:ro  # Read-only access to DuckDB
+      - ./notebooks:/app  # Hot reload for development (includes custom.css)
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - analytics-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  marimo-edit:
+    build:
+      context: ./notebooks
+      dockerfile: Dockerfile
+    container_name: analytics-marimo-edit
+    command: ["marimo", "edit", "--host", "0.0.0.0", "--port", "3002", "--no-token"]
+    ports:
+      - "8082:3002"
+    volumes:
+      - ./data:/app/data  # Read-write access for edit mode
+      - ./notebooks:/app  # Full access to edit notebooks
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - analytics-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   # Langfuse Observability Stack
   postgres:
